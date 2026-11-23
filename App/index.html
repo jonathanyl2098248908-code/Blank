@@ -1,0 +1,2781 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#080d18">
+    <title>Orbital — Atomic electron-structure explorer</title>
+    <style>
+:root {
+  color-scheme: dark;
+  --bg: #080d18;
+  --panel: #0e1624;
+  --panel-raised: #121d2e;
+  --border: #1d2b3f;
+  --muted: #74839b;
+  --text: #e9f0fb;
+  --subtle: #a3b0c2;
+  --cyan: #66e4d3;
+  --blue: #76a8ff;
+  --purple: #c59aff;
+  --mono: "DM Mono", monospace;
+  --sans: "DM Sans", sans-serif;
+  --display: "Space Grotesk", sans-serif;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; min-width: 320px; background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 13px; }
+button, input, select { font: inherit; }
+button { color: inherit; }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+.app-shell { max-width: 1600px; margin: 0 auto; padding: 0 42px 32px; }
+.topbar { height: 66px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #172233; }
+.brand { display: inline-flex; gap: 10px; align-items: center; color: #eaf3ff; font: 700 19px var(--display); letter-spacing: -.8px; text-decoration: none; }
+.brand-period { color: var(--cyan); }
+.brand-mark { width: 22px; height: 22px; position: relative; display: inline-block; }
+.brand-mark span { position: absolute; border: 1.4px solid var(--cyan); border-radius: 50%; width: 20px; height: 9px; top: 6px; left: 1px; }
+.brand-mark span:nth-child(2) { transform: rotate(60deg); }
+.brand-mark span:nth-child(3) { transform: rotate(-60deg); }
+.topbar-center { display: flex; align-items: center; gap: 9px; color: #8492a8; font: 10px var(--mono); letter-spacing: 1px; }
+.live-dot, .mode-pulse, .render-dot { border-radius: 50%; background: var(--cyan); box-shadow: 0 0 9px #66e4d355; }
+.live-dot { height: 6px; width: 6px; }
+.icon-button { background: transparent; border: 1px solid #263449; width: 26px; height: 26px; border-radius: 50%; color: #91a1b7; cursor: pointer; font-family: var(--mono); }
+.intro-row { display: flex; align-items: flex-end; justify-content: space-between; padding: 34px 0 24px; }
+.eyebrow, .section-kicker { color: #8191a9; font: 10px var(--mono); letter-spacing: 1.15px; }
+.eyebrow { display: flex; align-items: center; gap: 9px; }
+.eyebrow-line { width: 18px; height: 1px; background: var(--cyan); }
+h1, h2, p { margin: 0; }
+h1 { margin-top: 9px; font: 600 32px/1.1 var(--display); letter-spacing: -1.3px; }
+.intro-copy { color: #94a1b4; font-size: 13px; margin-top: 9px; }
+.mode-badge { border: 1px solid #3d3a31; background: #171711; border-radius: 7px; padding: 10px 13px; display: flex; align-items: center; gap: 10px; margin-bottom: 2px; text-align: left; cursor: pointer; }
+.mode-change { border-left: 1px solid #454236; padding-left: 9px; color: #99917f; font: 8px var(--mono); letter-spacing: .5px; }
+.mode-pulse { width: 7px; height: 7px; background: #ffc96e; box-shadow: 0 0 8px #ffc96e77; }
+.mode-badge b, .mode-badge small { display: block; }
+.mode-badge b { color: #e0c58f; font: 9px var(--mono); letter-spacing: .8px; }
+.mode-badge small { color: #8d8779; font-size: 10px; margin-top: 3px; }
+.workspace { display: grid; grid-template-columns: minmax(335px, 430px) minmax(0, 1fr); gap: 15px; align-items: stretch; }
+.panel { background: var(--panel); border: 1px solid var(--border); border-radius: 9px; }
+.element-panel { padding: 17px 17px 14px; display: flex; flex-direction: column; }
+.panel-heading { display: flex; align-items: flex-start; justify-content: space-between; }
+h2 { color: #e5ecf7; font: 500 16px var(--display); letter-spacing: -.3px; margin-top: 6px; }
+.element-count { color: #c0cede; font: 12px var(--mono); padding-top: 13px; }
+.element-count i { font: normal 10px var(--sans); color: var(--muted); }
+.periodic-table { display: grid; grid-template-columns: repeat(18, minmax(0, 1fr)); grid-template-rows: repeat(9, 32px); gap: 3px; margin-top: 18px; }
+.element-cell { border: 1px solid #253548; background: #131e2d; border-radius: 4px; padding: 2px 3px; min-width: 0; cursor: pointer; text-align: left; position: relative; transition: background .15s, border-color .15s, transform .15s; }
+.element-cell:hover { transform: translateY(-1px); border-color: #8398b4; background: #1c2a3d; z-index: 1; }
+.element-cell:focus-visible { z-index: 2; outline-offset: 1px; }
+.element-cell.selected { border-color: #61ddcf; background: #173537; box-shadow: 0 0 0 1px #61ddcf33, inset 0 0 12px #61ddcf0a; }
+.element-cell .atomic-number { color: #8594a8; display: block; font: 8px/1 var(--mono); }
+.element-cell .element-symbol { display: block; text-align: center; margin-top: 3px; font: 500 12px/1 var(--display); color: #dce7f5; }
+.element-cell.selected .element-symbol { color: #82f2df; }
+.element-cell.placeholder { color: #57677c; background: #101927; border-style: dashed; cursor: default; }
+.element-cell.placeholder .element-symbol { font-size: 10px; }
+.element-cell[data-block="s"] { background-color: #172432; }
+.element-cell[data-block="p"] { background-color: #1a2030; }
+.element-cell[data-block="d"] { background-color: #202033; }
+.element-cell[data-block="f"] { background-color: #272032; }
+.element-cell[data-block="s"].selected { background: #173537; }
+.element-cell[data-block="p"].selected { background: #173537; }
+.element-cell[data-block="d"].selected { background: #173537; }
+.element-cell[data-block="f"].selected { background: #173537; }
+.series-label { display: flex; align-items: center; gap: 8px; margin: 9px 0 0 2px; color: #7c6c8a; font: 8px var(--mono); letter-spacing: .65px; }
+.series-label > span:first-child { width: 14px; height: 1px; background: #8d70a4; }
+.series-dash { flex: 1; border-top: 1px dashed #354052; }
+.table-legend { display: flex; gap: 12px; margin: 12px 0 13px; color: #8391a3; font: 9px var(--mono); }
+.table-legend span { display: flex; align-items: center; gap: 5px; }
+.legend-dot { display: inline-block; width: 6px; height: 6px; border-radius: 2px; }
+.s-dot { background: #83b9cd; }.p-dot { background: #9ba8da; }.d-dot { background: #bd9fda; }.f-dot { background: #d2a7c7; }
+.selected-element-card { border-top: 1px solid #1d2b3e; padding-top: 13px; margin-top: auto; display: flex; align-items: center; gap: 12px; }
+.selected-number { color: var(--cyan); font: 10px var(--mono); min-width: 24px; }
+.selected-symbol { color: #ecf4ff; font: 500 25px var(--display); min-width: 36px; }
+.selected-info strong { display: block; font: 500 12px var(--display); }
+.selected-info small { display: block; color: #8190a4; font-size: 10px; margin-top: 3px; }
+.viewer-column { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.viewer-card { overflow: hidden; }
+.viewer-top { display: flex; justify-content: space-between; align-items: center; padding: 15px 17px 13px; }
+.heading-muted { color: #738198; font-weight: 400; }
+.viewer-actions { display: flex; align-items: center; gap: 6px; }
+.zoom-controls { display: inline-flex; align-items: center; gap: 3px; border-left: 1px solid #263449; padding-left: 6px; }
+.zoom-controls button { min-width: 27px; height: 27px; border: 1px solid #2a384b; border-radius: 4px; background: #101a28; color: #b7c8da; font: 11px var(--mono); cursor: pointer; }
+.zoom-controls button:hover { border-color: #64d9ca; color: #e0f6f1; }
+.zoom-controls output { min-width: 38px; color: #8798ae; text-align: center; font: 8px var(--mono); }
+.view-button { border: 1px solid transparent; background: transparent; color: #8493a8; border-radius: 5px; font: 10px var(--mono); padding: 7px 9px; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; }
+.view-button:disabled, select:disabled { opacity: .48; cursor: not-allowed; }
+.orbital-select { max-width: 130px; height: 28px; color: #b7c8da; background: #0b1320; border: 1px solid #2a384b; border-radius: 4px; padding: 0 6px; font: 9px var(--mono); }
+.view-button.active { color: #dce6f3; background: #182334; border-color: #26364b; }
+.phase-icon { color: #bd92ff; font-size: 13px; }
+.toggle-track { width: 21px; height: 12px; border-radius: 8px; background: #293448; padding: 2px; display: inline-block; }
+.toggle-track i { width: 8px; height: 8px; border-radius: 50%; background: #8492a4; display: block; transition: transform .18s, background .18s; }
+.phase-enabled .toggle-track { background: #544073; }
+.phase-enabled .toggle-track i { background: #d1a5ff; transform: translateX(9px); }
+.canvas-wrap { height: 340px; position: relative; overflow: hidden; background: radial-gradient(ellipse at 50% 49%, #101f30 0%, #0c1624 49%, #0a111d 100%); touch-action: none; }
+#wave-canvas, #axes-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+#wave-canvas { z-index: 1; cursor: grab; }
+#wave-canvas:active { cursor: grabbing; }
+#axes-canvas { z-index: 2; pointer-events: none; }
+.canvas-label { position: absolute; z-index: 3; color: #718198; font: 8px var(--mono); letter-spacing: .75px; pointer-events: none; }
+.label-top-left { top: 14px; left: 16px; }
+.label-top-right { top: 16px; right: 16px; color: #78889d; font-size: 7px; }
+.axis-mark { color: var(--cyan); font-size: 13px; margin-right: 5px; }
+.label-bottom-left { bottom: 12px; left: 15px; color: #65748a; font-size: 7px; }
+.label-bottom-right { bottom: 12px; right: 15px; color: #8194aa; }
+.canvas-center-hint { position: absolute; z-index: 2; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; }
+.canvas-center-hint b { font: 500 12px var(--display); color: #b7c5d6; margin-top: 6px; }
+.canvas-center-hint small { font-size: 10px; color: #718096; margin-top: 4px; }
+.hint-orbit { color: #6ae3d4; opacity: .7; font-size: 29px; line-height: 1; }
+.compute-overlay { position: absolute; z-index: 3; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(390px, calc(100% - 34px)); border: 1px solid #2a3a50; border-radius: 8px; background: #0d1724ed; padding: 14px 15px; box-shadow: 0 8px 40px #0005; }
+.compute-message { display: flex; align-items: center; gap: 10px; }
+.compute-message b, .compute-message small { display: block; }
+.compute-message b { font: 500 11px var(--display); }
+.compute-message small { color: #8290a4; font-size: 9px; margin-top: 3px; }
+.compute-message strong { margin-left: auto; color: var(--cyan); font: 11px var(--mono); }
+.compute-spinner { height: 16px; width: 16px; border-radius: 50%; border: 2px solid #334259; border-top-color: var(--cyan); animation: spin .75s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.progress-track { height: 3px; background: #263448; border-radius: 3px; margin-top: 12px; overflow: hidden; }
+.progress-track span { display: block; width: 0; height: 100%; background: linear-gradient(90deg, #57c8c0, #9d8aff); transition: width .22s ease-out; }
+.cancel-compute { display: block; margin: 9px 0 0 auto; padding: 2px 0; }
+.visualization-footer { height: 34px; padding: 0 15px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #1a2737; color: #8190a4; font: 9px var(--mono); }
+.density-legend { display: flex; align-items: center; gap: 6px; color: #9daac0; }
+.density-legend > i { height: 6px; width: 6px; background: #82e8da; border-radius: 50%; }
+.density-legend small { color: #718097; font-size: 7px; }
+.legend-gradient { width: 42px; height: 3px; border-radius: 2px; background: linear-gradient(90deg, #1d4459, #62e2d3, #f2f6cc); }
+.field-meta i { color: #42526a; font-style: normal; padding: 0 3px; }
+.controls-row { display: grid; grid-template-columns: 1.16fr 1fr; gap: 12px; }
+.state-panel, .method-panel { padding: 13px 15px 12px; }
+.compact-heading h2 { font-size: 14px; margin-top: 4px; }
+.compact-heading .section-kicker { font-size: 9px; }
+.state-controls { display: flex; gap: 17px; margin-top: 14px; }
+.quantum-controls { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; margin-top: 11px; }
+.quantum-controls input, .quantum-controls select { width: 100%; height: 31px; min-width: 0; color: #d7e1ee; background: #0b1320; border: 1px solid #2a384b; border-radius: 5px; padding: 0 8px; font: 11px var(--mono); }
+.quantum-controls input:disabled, .quantum-controls select:disabled { opacity: .48; cursor: not-allowed; }
+.quantum-note { color: #69798f; font-size: 9px; line-height: 1.4; margin-top: 8px; }
+.hyperfine-panel { margin-top: 13px; border-top: 1px solid #1d2a3b; padding-top: 11px; }
+.hyperfine-panel summary, .hyperfine-advanced summary { color: #c9d6e7; font: 500 11px var(--display); cursor: pointer; }
+.hyperfine-intro, .hyperfine-note { color: #8190a4; font-size: 9px; line-height: 1.5; margin-top: 8px; }
+.hyperfine-controls { display: grid; grid-template-columns: minmax(0, 1fr) 100px 100px; gap: 9px; margin-top: 10px; }
+.hyperfine-controls input, .hyperfine-controls select { width: 100%; height: 31px; min-width: 0; color: #d7e1ee; background: #0b1320; border: 1px solid #2a384b; border-radius: 5px; padding: 0 8px; font: 10px var(--mono); }
+.hyperfine-json { display: block; width: 100%; min-height: 150px; margin-top: 9px; resize: vertical; color: #d5e0ee; background: #09111c; border: 1px solid #2a384b; border-radius: 5px; padding: 10px; font: 10px/1.5 var(--mono); }
+.hyperfine-file { display: block; margin-top: 9px; color: #91a1b7; font-size: 10px; }
+.hyperfine-actions { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 9px; }
+.hyperfine-results { margin-top: 10px; border: 1px solid #28384d; border-radius: 6px; padding: 10px; }
+.hyperfine-results b { display: block; color: #d4e4f6; font: 500 10px var(--mono); }
+.hyperfine-results pre { max-height: 220px; overflow: auto; margin: 8px 0 0; color: #b6c4d6; font: 9px/1.5 var(--mono); white-space: pre-wrap; }
+.ensdf-lookup { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 9px; margin-top: 10px; align-items: end; }
+.ensdf-lookup select { width: 100%; height: 31px; min-width: 0; color: #d7e1ee; background: #0b1320; border: 1px solid #2a384b; border-radius: 5px; padding: 0 8px; font: 10px var(--mono); }
+.ensdf-details { margin-top: 8px; color: #8190a4; font: 9px/1.5 var(--mono); white-space: pre-wrap; }
+.ensdf-attribution { color: #66778d; font-size: 9px; line-height: 1.4; margin-top: 6px; }
+.control-group { min-width: 0; }
+.control-label { display: block; color: #8998ac; font: 9px var(--mono); letter-spacing: .5px; margin-bottom: 6px; }
+.control-unit { color: #65748a; }
+.stepper, .mass-input-wrap { display: flex; height: 31px; border: 1px solid #2a384b; border-radius: 5px; background: #0b1320; overflow: hidden; }
+.stepper button, .mass-input-wrap button { width: 29px; color: #a5b4c8; background: #131e2d; border: 0; cursor: pointer; font-size: 15px; }
+.stepper input, .mass-input-wrap input { width: 39px; color: #e4edf9; text-align: center; background: transparent; border: 0; outline: 0; font: 12px var(--mono); appearance: textfield; -moz-appearance: textfield; }
+.stepper input::-webkit-inner-spin-button, .mass-input-wrap input::-webkit-inner-spin-button { appearance: none; }
+.excitation-group select { width: 143px; max-width: 100%; height: 31px; color: #d7e1ee; background: #0b1320; border: 1px solid #2a384b; border-radius: 5px; padding: 0 8px; outline: none; font-size: 10px; }
+.control-hint { display: block; color: #69798f; font-size: 9px; margin-top: 5px; white-space: nowrap; }
+.electron-summary { display: flex; align-items: center; gap: 8px; margin-top: 13px; border-top: 1px solid #1d2a3b; padding-top: 10px; color: #b6c4d4; font-size: 10px; }
+.electron-icon { color: var(--cyan); font: 11px var(--mono); }
+.electron-icon sup { font-size: 8px; }
+.summary-separator { height: 12px; border-left: 1px solid #324054; margin-left: 2px; }
+.term-symbol { color: #a5b6cd; font: 11px var(--mono); }
+.info-dot { border: 1px solid #36465c; border-radius: 50%; width: 16px; height: 16px; color: #8493a7; text-align: center; font: italic 10px Georgia; line-height: 14px; }
+.method-copy { font-size: 10px; line-height: 1.5; color: #8e9db0; margin-top: 9px; }
+.method-copy b { color: #d2ddeb; font-weight: 500; }
+.method-tags { display: flex; gap: 5px; margin-top: 8px; }
+.method-tags span { border: 1px solid #2a3749; border-radius: 3px; padding: 3px 5px; color: #9cadc1; font: 8px var(--mono); }
+.method-note { color: #6f8097; font-size: 9px; line-height: 1.4; margin-top: 7px; }
+.generate-row { display: flex; justify-content: space-between; align-items: center; margin-top: auto; padding-top: 11px; }
+.render-note { display: flex; align-items: center; gap: 6px; color: #718197; font: 9px var(--mono); }
+.render-dot { height: 5px; width: 5px; }
+.generate-button { height: 36px; border: 1px solid #6be4d3; border-radius: 5px; padding: 0 12px; background: #57cbbb; color: #071519; font: 600 11px var(--sans); cursor: pointer; transition: background .15s, transform .15s; }
+.generate-button:hover { background: #81f1df; transform: translateY(-1px); }
+.generate-button:disabled { opacity: .7; cursor: wait; transform: none; }
+.generate-spark { font-size: 13px; margin-right: 5px; }
+.button-arrow { margin-left: 10px; font-size: 14px; }
+.isotope-section { margin-top: 15px; padding: 16px 18px 15px; }
+.isotope-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid #1c293a; padding-bottom: 14px; }
+.isotope-header h2 { margin-top: 5px; }
+.isotope-header p { color: #8190a4; font-size: 10px; margin-top: 5px; }
+.isotope-tabs { display: flex; gap: 3px; background: #0a121e; border: 1px solid #1d2a3c; padding: 3px; border-radius: 6px; }
+.isotope-tab { border: 0; border-radius: 4px; padding: 8px 10px; background: transparent; color: #8391a5; font: 10px var(--mono); cursor: pointer; }
+.isotope-tab.active { background: #1a2939; color: #dbe8f6; }
+.tab-arrow { color: var(--cyan); margin-left: 4px; }
+.isotope-content { min-height: 100px; }
+.isotope-chooser { display: flex; align-items: center; gap: 24px; padding: 15px 1px 3px; position: relative; }
+.nuclide-display { display: flex; align-items: center; gap: 9px; min-width: 180px; }
+.nuclide-symbol { font: 500 21px var(--display); color: #a4c8ff; }
+.nuclide-name { color: #c8d3e2; font-size: 11px; }
+.mass-control { display: flex; flex-direction: column; gap: 5px; color: #8797ac; font: 9px var(--mono); letter-spacing: .4px; }
+.mass-control > span small { color: #7e91a7; font-size: 9px; }
+.mass-input-wrap { width: 105px; height: 28px; }
+.mass-input-wrap button { width: 27px; }
+.mass-input-wrap input { flex: 1; width: auto; font-size: 11px; }
+.neutron-readout { color: #718198; font: 9px var(--mono); }
+.chart-jump { align-self: flex-start; margin-top: 18px; background: transparent; border: 1px solid #2a3a50; border-radius: 4px; padding: 7px 10px; color: #9aacc2; font-size: 10px; cursor: pointer; }
+.chart-jump span { color: var(--cyan); margin-left: 8px; }
+.isotope-caveat { margin-left: auto; max-width: 250px; color: #6f7e92; font-size: 9px; line-height: 1.5; text-align: right; }
+.stability-panel { padding-top: 14px; }
+.chart-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.chart-heading b { display: block; color: #adbcd0; font: 9px var(--mono); letter-spacing: .4px; }
+.chart-heading small { display: block; color: #718097; font-size: 9px; margin-top: 4px; }
+.chart-key { display: flex; align-items: center; gap: 5px; color: #8999af; font: 9px var(--mono); }
+.chart-key i { width: 7px; height: 7px; border-radius: 2px; background: #8f7af0; display: inline-block; margin-left: 6px; }
+.chart-key .current-key { background: var(--cyan); }
+.chart-wrap { height: 180px; position: relative; padding: 0 0 18px 28px; }
+#stability-canvas { width: 100%; height: 100%; display: block; }
+.chart-axis-y, .chart-axis-x { position: absolute; color: #708098; font: 8px var(--mono); letter-spacing: .5px; }
+.chart-axis-y { left: 0; top: 50%; writing-mode: vertical-rl; transform: translateY(-50%) rotate(180deg); }
+.chart-axis-x { bottom: 0; right: 8px; }
+.chart-caption { color: #78889e; font-size: 9px; margin-top: 8px; }
+.page-footer { display: flex; justify-content: space-between; color: #59697f; font: 8px var(--mono); letter-spacing: .55px; padding: 15px 2px 0; }
+.page-footer i { color: var(--cyan); font-style: normal; padding: 0 3px; }
+.mode-dialog-backdrop { position: fixed; z-index: 20; inset: 0; display: grid; place-items: center; padding: 20px; background: #050912dc; backdrop-filter: blur(7px); }
+.mode-dialog { width: min(475px, 100%); background: #101a29; border: 1px solid #304057; border-radius: 11px; padding: 23px; box-shadow: 0 24px 80px #0009; }
+.mode-dialog h2 { font-size: 21px; margin-top: 8px; }
+.mode-dialog > p { color: #9aa9bd; line-height: 1.55; margin-top: 9px; font-size: 11px; }
+.mode-options { display: grid; gap: 9px; margin-top: 19px; }
+.mode-option { display: flex; align-items: center; gap: 11px; text-align: left; padding: 13px; border: 1px solid #2b3a4e; border-radius: 7px; background: #0c1522; cursor: pointer; }
+.mode-option:hover { border-color: #69d7cc; background: #11232b; }
+.mode-option-icon { color: var(--cyan); font-size: 21px; width: 25px; text-align: center; }
+.mode-option b, .mode-option small { display: block; }
+.mode-option b { color: #e0e9f5; font: 500 12px var(--display); }
+.mode-option small { color: #8392a7; font-size: 10px; margin-top: 4px; line-height: 1.4; }
+.mode-option-arrow { margin-left: auto; color: var(--cyan); font-size: 16px; }
+.mode-dialog-foot { display: block; margin-top: 15px; color: #798aa1; font-size: 9px; }
+.mode-dialog-foot a, .backend-help a { color: #78dacc; text-decoration: none; }
+.mode-dialog-foot a:hover, .backend-help a:hover { text-decoration: underline; }
+.research-panel { padding: 15px; }
+.research-heading, .research-actions, .research-result-heading, .progress-label { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.research-heading h2 { font-size: 16px; }
+.backend-status { display: inline-flex; align-items: center; gap: 6px; border: 1px solid #35445a; border-radius: 20px; padding: 5px 8px; color: #93a2b7; font: 9px var(--mono); }
+.backend-status i { width: 6px; height: 6px; border-radius: 50%; background: #d3a360; }
+.backend-status.online i { background: #66e4d3; box-shadow: 0 0 8px #66e4d355; }
+.backend-status.error i { background: #ff818c; }
+.research-intro { color: #95a4b8; font-size: 10px; line-height: 1.6; margin-top: 10px; }
+.research-intro code, .grasp-field code { color: #a9c5e0; font: 9px var(--mono); }
+.starter-banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; padding: 11px 12px; border: 1px solid #28504c; border-radius: 6px; background: linear-gradient(110deg, #102823, #101c29 70%); }
+.starter-copy b, .starter-copy small { display: block; }
+.starter-copy b { color: #d3eee7; font: 500 10px var(--display); }
+.starter-copy small { color: #8ca99e; font-size: 9px; margin-top: 4px; }
+.starter-copy .starter-scope { color: #77889e; }
+.grasp-input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 13px; }
+.grasp-field { display: flex; flex-direction: column; min-width: 0; gap: 5px; color: #a5b3c5; font-size: 10px; }
+.grasp-field-wide { grid-column: 1 / -1; }
+.grasp-field textarea, .grasp-field input { width: 100%; padding: 8px; outline: none; border: 1px solid #2b3a4e; border-radius: 5px; background: #0a121e; color: #d5e0ef; font: 10px/1.45 var(--mono); }
+.grasp-field textarea { min-height: 79px; resize: vertical; }
+.grasp-field input { height: 32px; }
+.grasp-field-wide textarea { min-height: 66px; }
+.grasp-field textarea:focus { border-color: #538f91; }
+.grasp-field small { color: #77889e; font-size: 9px; line-height: 1.4; }
+.confirm-input { display: flex; align-items: flex-start; gap: 8px; color: #a1afc1; line-height: 1.45; font-size: 9px; margin-top: 12px; }
+.confirm-input input { accent-color: #60d9c9; margin: 0; }
+.research-actions { align-items: flex-end; margin-top: 12px; }
+.research-limit { max-width: 62%; color: #7d8ca1; font-size: 9px; line-height: 1.5; }
+.research-actions .generate-button { flex: 0 0 auto; }
+.research-buttons { display: flex; flex: 0 0 auto; flex-wrap: wrap; justify-content: flex-end; gap: 7px; }
+.auto-input-button { min-height: 36px; border: 1px solid #6be4d3; border-radius: 5px; padding: 0 12px; background: #57cbbb; color: #071519; font: 600 10px var(--sans); cursor: pointer; }
+.auto-input-button:hover { background: #81f1df; }
+.auto-input-button:disabled { opacity: .6; cursor: wait; }
+.starter-note { color: #77889e; font-size: 9px; line-height: 1.5; margin-top: 8px; }
+.research-progress { margin-top: 13px; border-top: 1px solid #1f2c3d; padding-top: 11px; }
+.progress-label { color: #a7b5c8; font: 9px var(--mono); }
+.progress-label b { color: var(--cyan); }
+.research-progress .progress-track { margin-top: 7px; }
+.research-results { margin-top: 13px; border-top: 1px solid #1f2c3d; padding-top: 11px; }
+.research-result-heading b { color: #ced9e7; font: 10px var(--mono); }
+.text-button { color: #9caec2; background: none; border: 0; font: 9px var(--mono); cursor: pointer; }
+.research-results pre { max-height: 210px; overflow: auto; padding: 9px; border-radius: 4px; color: #abb9cb; background: #080f19; white-space: pre-wrap; overflow-wrap: anywhere; font: 9px/1.5 var(--mono); }
+.artifact-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.artifact-list a { border: 1px solid #2e4053; border-radius: 4px; padding: 5px 7px; color: #8ddbcf; font: 9px var(--mono); text-decoration: none; }
+.artifact-list a:hover { border-color: #64d9ca; }
+.backend-help { color: #718198; font-size: 9px; margin-top: 11px; }
+.mode-grasp .mode-badge { border-color: #31574e; background: #11231f; }
+.mode-grasp .mode-pulse { background: #66e4d3; }
+.mode-grasp .mode-badge b { color: #83e3d3; }
+.mode-grasp .mode-badge small { color: #8ca99e; }
+.mode-grasp #canvas-disclaimer { color: #e0bd88; }
+.mode-grasp #field-meta { color: #88decf; }
+.mode-grasp #preview-actions { display: none; }
+.toast { position: fixed; left: 50%; bottom: 22px; transform: translate(-50%, 12px); border: 1px solid #36465b; border-radius: 6px; background: #152234; color: #ced9e8; padding: 9px 13px; font-size: 11px; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 10; }
+.toast.visible { opacity: 1; transform: translate(-50%, 0); }
+
+@media (min-width: 1500px) {
+  .periodic-table { grid-template-rows: repeat(9, 36px); }
+  .canvas-wrap { height: 326px; }
+}
+@media (max-width: 1100px) {
+  .app-shell { padding-inline: 25px; }
+  .workspace { grid-template-columns: minmax(305px, 370px) minmax(0, 1fr); gap: 11px; }
+  .element-panel { padding-inline: 12px; }
+  .periodic-table { grid-template-rows: repeat(9, 29px); gap: 2px; }
+  .element-cell .element-symbol { font-size: 10px; }
+  .controls-row { grid-template-columns: 1fr; }
+  .method-panel { display: block; }
+  .canvas-wrap { height: 300px; }
+}
+@media (max-width: 760px) {
+  .app-shell { padding: 0 14px 22px; }
+  .topbar { height: 55px; }
+  .topbar-center { font-size: 0; gap: 0; }
+  .intro-row { padding: 26px 0 17px; align-items: flex-start; flex-direction: column; gap: 14px; }
+  h1 { font-size: 27px; }
+  .mode-badge { padding: 8px 10px; }
+  .workspace { grid-template-columns: 1fr; }
+  .element-panel { order: 2; }
+  .viewer-column { order: 1; }
+  .periodic-table { grid-template-rows: repeat(9, 34px); }
+  .element-cell .element-symbol { font-size: 11px; }
+  .selected-element-card { margin-top: 7px; }
+  .canvas-wrap { height: 280px; }
+  .controls-row { grid-template-columns: 1fr; }
+  .isotope-section { padding: 14px 12px; }
+  .grasp-input-grid { grid-template-columns: 1fr; }
+  .grasp-field-wide { grid-column: auto; }
+  .starter-banner { align-items: stretch; flex-direction: column; }
+  .starter-banner .auto-input-button { width: 100%; }
+  .research-actions { align-items: stretch; flex-direction: column; }
+  .research-limit { max-width: 100%; }
+  .isotope-header { flex-direction: column; gap: 13px; }
+  .isotope-chooser { flex-wrap: wrap; gap: 12px 20px; }
+  .nuclide-display { min-width: 0; }
+  .isotope-caveat { text-align: left; margin: 0; max-width: 100%; flex-basis: 100%; }
+  .chart-jump { margin-top: 16px; }
+  .chart-key { font-size: 7px; gap: 2px; }
+  .page-footer { gap: 12px; line-height: 1.5; }
+}
+@media (max-width: 420px) {
+  .periodic-table { grid-template-rows: repeat(9, 27px); gap: 2px; margin-top: 13px; }
+  .element-cell { padding: 2px; }
+  .element-cell .atomic-number { font-size: 7px; }
+  .element-cell .element-symbol { font-size: 9px; margin-top: 2px; }
+  .table-legend { gap: 8px; font-size: 8px; }
+  .viewer-top { padding-inline: 11px; }
+  .viewer-actions { gap: 0; }
+  .view-button { padding-inline: 5px; font-size: 9px; }
+  .zoom-controls { gap: 2px; padding-left: 4px; }
+  .zoom-controls button { min-width: 24px; }
+  .zoom-controls output { min-width: 31px; }
+  .canvas-wrap { height: 245px; }
+  .state-controls { gap: 12px; }
+  .excitation-group select { width: 132px; }
+  .generate-button { padding-inline: 8px; font-size: 10px; }
+  .render-note { font-size: 8px; }
+}
+
+</style>
+  </head>
+  <body class="mode-grasp">
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="#" aria-label="Orbital home">
+          <span class="brand-mark"><span></span><span></span><span></span></span>
+          <span>orbital<span class="brand-period">.</span></span>
+        </a>
+        <div class="topbar-center"><span class="live-dot"></span> ATOMIC ELECTRON-STRUCTURE EXPLORER</div>
+        <button class="icon-button help-button" aria-label="About this calculation" title="About this calculation">?</button>
+      </header>
+
+      <main>
+        <section class="intro-row">
+          <div>
+            <div class="eyebrow"><span class="eyebrow-line"></span> COMPUTATIONAL ATOMIC PHYSICS</div>
+            <h1>See the shape of an atom.</h1>
+            <p class="intro-copy">Explore electron density across the periodic table, nuclides, and electronic states.</p>
+          </div>
+          <button class="mode-badge" id="mode-switch" type="button" aria-haspopup="dialog" aria-controls="mode-dialog" aria-expanded="false"><span class="mode-pulse"></span><span><b id="mode-title">BROWSER GRASP MCDHF</b><small id="mode-subtitle">Bundled WebAssembly engine</small></span><span class="mode-change">CHANGE</span></button>
+        </section>
+
+        <section class="workspace">
+          <aside class="element-panel panel">
+            <div class="panel-heading">
+              <div><span class="section-kicker">01 / SELECT ELEMENT</span><h2>Periodic table</h2></div>
+              <span class="element-count">118 <i>elements</i></span>
+            </div>
+            <div class="periodic-table" id="periodic-table" role="grid" aria-label="Periodic table of elements"></div>
+            <div class="series-label"><span></span> LANTHANIDES <span class="series-dash"></span> ACTINIDES</div>
+            <div class="table-legend">
+              <span><i class="legend-dot s-dot"></i>s-block</span>
+              <span><i class="legend-dot p-dot"></i>p-block</span>
+              <span><i class="legend-dot d-dot"></i>d-block</span>
+              <span><i class="legend-dot f-dot"></i>f-block</span>
+            </div>
+            <div class="selected-element-card" id="selected-element-card"></div>
+          </aside>
+
+          <section class="viewer-column">
+            <div class="viewer-card panel">
+              <div class="viewer-top">
+                <div><span class="section-kicker">ELECTRONIC STRUCTURE</span><h2>Electron density <span class="heading-muted">/ model orbitals</span></h2></div>
+                <div class="viewer-actions">
+                  <button class="view-button active" id="density-view" type="button">Density</button>
+                  <select class="orbital-select" id="density-state-select" aria-label="GRASP density state" hidden></select>
+                  <select class="orbital-select" id="orbital-select" aria-label="Orbital for phase display" hidden></select>
+                  <button class="view-button" id="phase-toggle" type="button" aria-pressed="false"><span class="phase-icon">±</span> Phase <span class="toggle-track"><i></i></span></button>
+                  <div class="zoom-controls" role="group" aria-label="3D view controls"><button id="zoom-out" type="button" aria-label="Zoom out">−</button><output id="zoom-level" aria-live="polite">1.0×</output><button id="zoom-in" type="button" aria-label="Zoom in">+</button><button id="reset-view" type="button" aria-label="Reset 3D view" title="Reset rotation and zoom">↺</button></div>
+                </div>
+              </div>
+              <div class="canvas-wrap" id="canvas-wrap">
+                <canvas id="wave-canvas" aria-label="3D volumetric electron density; drag to rotate and scroll to zoom"></canvas>
+                <canvas id="axes-canvas" aria-hidden="true"></canvas>
+                <div class="canvas-label label-top-left"><span class="axis-mark">↗</span> 3D ELECTRON DENSITY VOLUME</div>
+                <div class="canvas-label label-top-right">DRAG TO ROTATE · SCROLL TO ZOOM</div>
+                <div class="canvas-label label-bottom-left" id="canvas-disclaimer">NO GRASP SOLUTION · SUPPLY CSF AND NUCLEAR INPUTS</div>
+                <div class="canvas-label label-bottom-right" id="canvas-state">1s · GROUND STATE</div>
+                <div class="canvas-center-hint" id="canvas-hint"><span class="hint-orbit">◌</span><b>Ready for GRASP</b><small>Generate starter files or provide validated GRASP inputs</small></div>
+                <div class="compute-overlay" id="compute-overlay" hidden>
+                  <div class="compute-message"><span class="compute-spinner"></span><div><b id="compute-title">Preparing LDA-SCF calculation</b><small id="compute-step">Building the radial grid…</small></div><strong id="compute-percent">0%</strong></div>
+                  <div class="progress-track"><span id="progress-fill"></span></div>
+                  <button class="text-button cancel-compute" id="cancel-compute" type="button">Cancel calculation</button>
+                </div>
+              </div>
+              <div class="visualization-footer">
+                <span class="density-legend"><i></i> ρ(r) <small>LOW</small><span class="legend-gradient"></span><small>HIGH</small></span>
+                <span class="field-meta" id="field-meta">Awaiting browser-local GRASP MCDHF calculation</span>
+              </div>
+            </div>
+
+            <section class="research-panel panel" id="research-panel">
+              <div class="research-heading">
+                <div><span class="section-kicker" id="engine-kicker">BROWSER-LOCAL RESEARCH ENGINE</span><h2 id="engine-heading">GRASP · MCDHF workflow</h2></div>
+                <span class="backend-status" id="backend-status"><i></i><span>Checking local engine…</span></span>
+              </div>
+              <p class="research-intro" id="engine-intro">Generate approximate starter files from the current atom, ion, excitation, and isotope selection, or edit the inputs below. The bundled engine runs locally in a WebAssembly worker; it needs no network or server. Optional <code>rci</code> runs with your supplied settings. Results are not substituted if a calculation fails.</p>
+              <div class="starter-banner">
+                <div class="starter-copy"><b>Build starter inputs from the current selection</b><small id="starter-selection">Hydrogen-1 · neutral · ground state</small><small class="starter-scope">Generates editable files only; GRASP calculation starts only when you click Run GRASP.</small></div>
+                <button class="auto-input-button" id="generate-inputs" type="button">Generate GRASP inputs <span class="button-arrow">→</span></button>
+              </div>
+              <p class="starter-note" id="starter-note">These are approximate starting inputs: one reference configuration, empirical nuclear radius, and zero nuclear moments. Light isotopes use a 0.5 fm nuclear skin to avoid invalid default Fermi parameters. Review and expand the basis before research use.</p>
+              <div class="research-progress" id="research-progress" hidden><div class="progress-label"><span id="research-step">Queued</span><b id="research-percent">0%</b></div><div class="progress-track"><span id="research-progress-fill"></span></div><button class="text-button cancel-compute" id="cancel-grasp" type="button">Cancel calculation</button></div>
+              <div class="research-results" id="research-results" hidden><div class="research-result-heading" role="status" aria-live="polite"><b id="research-result-title">Calculation result</b><button class="text-button" id="copy-log" type="button">Copy log</button></div><pre id="research-log"></pre><div class="artifact-list" id="artifact-list"></div></div>
+              <div class="grasp-input-grid">
+                <label class="grasp-field"><span>State / output stem</span><input id="grasp-state-name" type="text" value="atom" maxlength="24" autocomplete="off" spellcheck="false"><small>Use a short GRASP-safe file stem; it identifies density and native output files.</small></label>
+                <label class="grasp-field grasp-field-wide"><span>CSF configuration file <code>rcsf.inp</code></span><textarea id="grasp-config" spellcheck="false" placeholder="Paste the CSF configuration generated by GRASP rcsfgenerate…"></textarea></label>
+                <label class="grasp-field"><span>Nuclear data file <code>isodata</code></span><textarea id="grasp-isodata" spellcheck="false" placeholder="Paste the isotope data generated by GRASP rnucleus…"></textarea><small>Confirm it matches the selected Z and A and your chosen nuclear model.</small></label>
+                <label class="grasp-field"><span><code>rangular</code> answers</span><textarea id="grasp-rangular" spellcheck="false" placeholder="Paste the interactive answer transcript for this calculation"></textarea></label>
+                <label class="grasp-field"><span><code>rwfnestimate</code> answers</span><textarea id="grasp-rwfnestimate" spellcheck="false" placeholder="Paste the interactive answer transcript"></textarea></label>
+                <label class="grasp-field"><span><code>rmcdhf</code> answers</span><textarea id="grasp-rmcdhf" spellcheck="false" placeholder="Paste the interactive answer transcript"></textarea></label>
+                <label class="grasp-field grasp-field-wide"><span>Optional <code>rci</code> answers</span><textarea id="grasp-rci" spellcheck="false" placeholder="Leave blank to use MCDHF mixing coefficients. If supplied, include requested Breit/QED options in the transcript."></textarea></label>
+              </div>
+              <label class="confirm-input"><input id="grasp-confirm" type="checkbox"><span>I verified the CSF, symmetry, nuclear data, and GRASP answer transcripts match the selected element, ion, isotope, and state.</span></label>
+              <div class="research-actions"><span class="research-limit" id="research-limit">This MCDHF/RCI result depends on your CSF basis, nuclear model, convergence, and enabled corrections.</span><div class="research-buttons"><button class="generate-button" id="run-grasp" type="button"><span class="generate-spark">▶</span> Run bundled GRASP <span class="button-arrow">→</span></button></div></div>
+              <details class="hyperfine-panel">
+                <summary>Full hyperfine-coupled state · electronic × nuclear basis</summary>
+                <p class="hyperfine-intro">Diagonalizes the finite-basis atom–nucleus Hamiltonian in a fixed total F, M=F, and parity sector. GRASP electronic and KSHELL nuclear calculations need real model inputs; evaluated isotope labels alone cannot determine a total wavefunction.</p>
+                <div class="hyperfine-controls">
+                  <label class="control-group"><span class="control-label">NUCLEAR STATE ROUTE</span><select id="hyperfine-source"><option value="ensdf_spin">ENSDF spin-coupled product · no .snt</option><option value="kshell">Advanced KSHELL basis export</option><option value="ensdf">Advanced ENSDF basis export</option></select></label>
+                  <label class="control-group"><span class="control-label">TOTAL F</span><input id="hyperfine-f" type="text" value="0" aria-label="Total hyperfine angular momentum F"></label>
+                  <label class="control-group"><span class="control-label">NUCLEAR LEVEL</span><select id="hyperfine-nuclear-state" aria-label="Target nuclear state"><option value="">Load state data first</option></select></label>
+                </div>
+                <div class="ensdf-lookup">
+                  <button class="auto-input-button" id="fetch-ensdf-levels" type="button">Retrieve IAEA/ENSDF levels for selected isotope</button>
+                  <label class="control-group"><span class="control-label">EVALUATED LEVEL</span><select id="ensdf-level-select" aria-label="Retrieved ENSDF level"><option value="">Not retrieved</option></select></label>
+                </div>
+                <pre class="ensdf-details" id="ensdf-level-details" aria-live="polite">ENSDF retrieval requires opening Orbital through the local server. Retrieved records provide evaluated level data only, not nuclear wavefunctions.</pre>
+                <p class="ensdf-attribution" id="ensdf-attribution">Source: IAEA Nuclear Data Services LiveChart API (ENSDF evaluation). Level energies are returned in keV and converted to MeV for display.</p>
+                <details class="hyperfine-advanced" id="advanced-hyperfine-inputs" hidden>
+                  <summary>Advanced full-matrix import · precomputed signed elements only</summary>
+                  <label class="hyperfine-file">Load full GRASP and nuclear basis/matrix JSON <input id="hyperfine-file" type="file" accept=".json,application/json"></label>
+                  <textarea class="hyperfine-json" id="hyperfine-json" spellcheck="false" aria-label="Advanced GRASP and nuclear state/matrix-element JSON" placeholder="Load or paste orbital-hyperfine-v1 JSON. This advanced path requires validated state vectors and signed matrix elements."></textarea>
+                  <p class="hyperfine-note"><a class="text-button" href="assets/hyperfine-template.json" download>Advanced JSON schema starter</a></p>
+                </details>
+                <p class="hyperfine-note" id="hyperfine-note">Default route needs no .snt file or matrix entries: it CG-couples a verified GRASP electronic level to the selected exact-spin ENSDF level. It does not resolve nuclear spatial structure or calculate hyperfine shifts/mixing.</p>
+                <div class="hyperfine-actions"><span><a class="text-button" href="https://www.nndc.bnl.gov/ensdf/" target="_blank" rel="noreferrer">ENSDF level data ↗</a></span><button class="generate-button" id="solve-hyperfine" type="button">Build coupled state <span class="button-arrow">→</span></button></div>
+                <div class="hyperfine-results" id="hyperfine-results" hidden><b id="hyperfine-result-title"></b><pre id="hyperfine-result-output"></pre><div class="artifact-list" id="hyperfine-artifacts"></div></div>
+              </details>
+              <p class="backend-help" id="backend-help" hidden>Need the native server? <a href="README.md#local-grasp-backend" target="_blank" rel="noreferrer">Setup instructions ↗</a></p>
+            </section>
+
+            <div class="controls-row">
+              <section class="panel state-panel">
+                <div class="panel-heading compact-heading">
+                  <div><span class="section-kicker">02 / ELECTRONIC STATE</span><h2>Configure atom</h2></div>
+                </div>
+                <div class="state-controls">
+                  <label class="control-group">
+                    <span class="control-label">CHARGE <span class="control-unit">(e)</span></span>
+                    <span class="stepper"><button type="button" id="charge-down" aria-label="Decrease ion charge">−</button><input id="charge-input" type="number" value="0" min="-8" max="8" aria-label="Ion charge"><button type="button" id="charge-up" aria-label="Increase ion charge">+</button></span>
+                    <span class="control-hint" id="charge-hint">Neutral atom</span>
+                  </label>
+                  <label class="control-group excitation-group">
+                    <span class="control-label">STARTER CONFIGURATION</span>
+                    <select id="excitation-select" aria-label="Excitation state">
+                      <option value="ground">Aufbau reference</option>
+                      <option value="low">Low promotion</option>
+                      <option value="medium">Moderate promotion</option>
+                      <option value="high">High promotion</option>
+                    </select>
+                    <span class="control-hint" id="state-hint">Approximate configuration only</span>
+                  </label>
+                </div>
+                <div class="quantum-controls" aria-label="Requested electronic state">
+                  <label class="control-group"><span class="control-label">TOTAL J</span><input id="j-input" type="text" value="1/2" aria-label="Requested total electronic angular momentum J" autocomplete="off" spellcheck="false"><span class="control-hint">integer or half-integer</span></label>
+                  <label class="control-group"><span class="control-label">PARITY π</span><select id="parity-input" aria-label="Requested electronic parity"><option value="+">Even (+)</option><option value="-">Odd (−)</option></select><span class="control-hint">+ even · − odd</span></label>
+                  <label class="control-group"><span class="control-label">LEVEL k</span><input id="k-input" type="number" value="1" min="1" step="1" aria-label="Requested level index k"><span class="control-hint">within Jπ</span></label>
+                </div>
+                <p class="quantum-note">Browser GRASP verifies the requested Jπ and k against state-resolved density output. Native-server mode returns files only and does not verify this target. Supplied CSFs/transcripts must contain the requested symmetry and level.</p>
+                <div class="electron-summary"><span class="electron-icon">e<sup>−</sup></span><span id="electron-count">1 electron</span><span class="summary-separator"></span><span class="term-symbol" id="term-symbol">Term not resolved</span></div>
+              </section>
+              <section class="panel method-panel">
+                <div class="panel-heading compact-heading">
+                  <div><span class="section-kicker">MODEL SCOPE</span><h2>What this is</h2></div>
+                  <span class="info-dot" title="These methods are not run in this browser preview">i</span>
+                </div>
+                <p class="method-copy" id="method-copy">Browser mode runs the <b>GRASP relativistic MCDHF/RCI engine</b> locally in WebAssembly; no local server is needed.</p>
+                <div class="method-tags" id="method-tags"><span>Dirac MCDHF</span><span>optional RCI</span><span>user-supplied nuclear model</span><span>no automatic QED</span></div>
+                <p class="method-note">The complete 3D volume is ray-marched from radial, spherical-average density, not a planar slice. Phase uses the selected large radial component with an m=0 angular approximation; it is not the full spinor or many-electron phase.</p>
+              </section>
+            </div>
+            <div class="generate-row" id="preview-actions" hidden><span class="render-note"><span class="render-dot"></span> Browser-local SCF · model-dependent</span><button class="generate-button" id="generate-button" type="button"><span class="generate-spark">∿</span> Solve density (LDA-SCF) <span class="button-arrow">→</span></button></div>
+          </section>
+        </section>
+
+        <section class="isotope-section panel">
+          <div class="isotope-header">
+            <div><span class="section-kicker">03 / NUCLEAR STRUCTURE</span><h2>Choose a nuclide</h2><p>Select a mass number and explore a schematic view of its position relative to nuclear stability.</p></div>
+            <div class="isotope-tabs" role="tablist" aria-label="Nuclide panels"><button class="isotope-tab active" id="isotope-tab" role="tab" aria-selected="true" aria-controls="isotope-panel">Isotope selector</button><button class="isotope-tab" id="stability-tab" role="tab" aria-selected="false" aria-controls="stability-panel">Stability chart <span class="tab-arrow">↗</span></button></div>
+          </div>
+          <div class="isotope-content">
+            <div class="isotope-chooser" id="isotope-panel" role="tabpanel" aria-labelledby="isotope-tab">
+              <div class="nuclide-display"><span class="nuclide-symbol" id="nuclide-symbol">¹H</span><span class="nuclide-name" id="nuclide-name">Hydrogen-1</span></div>
+              <label class="mass-control"><span>MASS NUMBER <small>A</small></span><div class="mass-input-wrap"><button id="mass-down" type="button" aria-label="Decrease mass number">−</button><input id="mass-input" type="number" min="1" max="320" value="1" aria-label="Mass number"><button id="mass-up" type="button" aria-label="Increase mass number">+</button></div><small class="neutron-readout" id="neutron-readout">0 neutrons</small></label>
+              <button class="chart-jump" id="chart-jump" type="button">View on chart <span>↗</span></button>
+              <p class="isotope-caveat">Mass number is user-selected; nuclide existence, binding energy, and decay are not evaluated.</p>
+            </div>
+            <div class="stability-panel" id="stability-panel" role="tabpanel" aria-labelledby="stability-tab" hidden>
+              <div class="chart-heading"><div><b>NUCLEAR STABILITY · SCHEMATIC</b><small>Illustrative stability band — not experimental nuclide data</small></div><span class="chart-key"><i></i> Stability band <i class="current-key"></i><span id="chart-key-label">Current element</span></span></div>
+              <div class="chart-wrap"><canvas id="stability-canvas" aria-label="Schematic neutron versus proton chart with the selected element highlighted"></canvas><div class="chart-axis-y">NEUTRONS  N</div><div class="chart-axis-x">PROTONS  Z</div></div>
+              <p class="chart-caption" id="chart-caption">Selected element is highlighted at its proton number; selected isotope is marked on the schematic chart.</p>
+            </div>
+          </div>
+        </section>
+        <footer class="page-footer"><span>ORBITAL <i>·</i> AN EXPLORATION TOOL</span><span>Visualizations are qualitative and are not scientific predictions.</span></footer>
+      </main>
+    </div>
+    <div class="mode-dialog-backdrop" id="mode-dialog" role="dialog" aria-modal="true" aria-labelledby="mode-dialog-title" hidden>
+      <div class="mode-dialog">
+        <span class="section-kicker">CHOOSE COMPUTE MODE</span>
+        <h2 id="mode-dialog-title">Choose a calculation mode</h2>
+        <p>Choose the bundled browser engine, an approximate fast preview, or a separately installed local GRASP server.</p>
+        <div class="mode-options">
+          <button class="mode-option research-option" id="choose-grasp" type="button"><span class="mode-option-icon">∿</span><span><b>Browser GRASP MCDHF</b><small>Relativistic MCDHF/RCI runs locally; paste validated inputs or generate approximate starter files.</small></span><span class="mode-option-arrow">→</span></button>
+          <button class="mode-option" id="choose-preview" type="button"><span class="mode-option-icon">◌</span><span><b>Fast approximate preview</b><small>Runs a spherical Kohn–Sham LDA-SCF model; nonrelativistic and without QED.</small></span><span class="mode-option-arrow">→</span></button>
+          <button class="mode-option" id="choose-server" type="button"><span class="mode-option-icon">⌂</span><span><b>Native GRASP server</b><small>Runs GRASP installed on this computer through the optional loopback server.</small></span><span class="mode-option-arrow">→</span></button>
+        </div>
+        <small class="mode-dialog-foot">The browser engine needs no server. <a href="README.md#local-grasp-backend" target="_blank" rel="noreferrer">Native server setup ↗</a></small>
+      </div>
+    </div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="assets/hyperfine.js"></script>
+    <script src="assets/grasp-wasm-sources.js"></script>
+    <script>
+"use strict";
+
+const elements = [
+  ["H","Hydrogen"],["He","Helium"],
+  ["Li","Lithium"],["Be","Beryllium"],["B","Boron"],["C","Carbon"],["N","Nitrogen"],["O","Oxygen"],["F","Fluorine"],["Ne","Neon"],
+  ["Na","Sodium"],["Mg","Magnesium"],["Al","Aluminium"],["Si","Silicon"],["P","Phosphorus"],["S","Sulfur"],["Cl","Chlorine"],["Ar","Argon"],
+  ["K","Potassium"],["Ca","Calcium"],["Sc","Scandium"],["Ti","Titanium"],["V","Vanadium"],["Cr","Chromium"],["Mn","Manganese"],["Fe","Iron"],["Co","Cobalt"],["Ni","Nickel"],["Cu","Copper"],["Zn","Zinc"],["Ga","Gallium"],["Ge","Germanium"],["As","Arsenic"],["Se","Selenium"],["Br","Bromine"],["Kr","Krypton"],
+  ["Rb","Rubidium"],["Sr","Strontium"],["Y","Yttrium"],["Zr","Zirconium"],["Nb","Niobium"],["Mo","Molybdenum"],["Tc","Technetium"],["Ru","Ruthenium"],["Rh","Rhodium"],["Pd","Palladium"],["Ag","Silver"],["Cd","Cadmium"],["In","Indium"],["Sn","Tin"],["Sb","Antimony"],["Te","Tellurium"],["I","Iodine"],["Xe","Xenon"],
+  ["Cs","Caesium"],["Ba","Barium"],["La","Lanthanum"],["Ce","Cerium"],["Pr","Praseodymium"],["Nd","Neodymium"],["Pm","Promethium"],["Sm","Samarium"],["Eu","Europium"],["Gd","Gadolinium"],["Tb","Terbium"],["Dy","Dysprosium"],["Ho","Holmium"],["Er","Erbium"],["Tm","Thulium"],["Yb","Ytterbium"],["Lu","Lutetium"],
+  ["Hf","Hafnium"],["Ta","Tantalum"],["W","Tungsten"],["Re","Rhenium"],["Os","Osmium"],["Ir","Iridium"],["Pt","Platinum"],["Au","Gold"],["Hg","Mercury"],["Tl","Thallium"],["Pb","Lead"],["Bi","Bismuth"],["Po","Polonium"],["At","Astatine"],["Rn","Radon"],
+  ["Fr","Francium"],["Ra","Radium"],["Ac","Actinium"],["Th","Thorium"],["Pa","Protactinium"],["U","Uranium"],["Np","Neptunium"],["Pu","Plutonium"],["Am","Americium"],["Cm","Curium"],["Bk","Berkelium"],["Cf","Californium"],["Es","Einsteinium"],["Fm","Fermium"],["Md","Mendelevium"],["No","Nobelium"],["Lr","Lawrencium"],
+  ["Rf","Rutherfordium"],["Db","Dubnium"],["Sg","Seaborgium"],["Bh","Bohrium"],["Hs","Hassium"],["Mt","Meitnerium"],["Ds","Darmstadtium"],["Rg","Roentgenium"],["Cn","Copernicium"],["Nh","Nihonium"],["Fl","Flerovium"],["Mc","Moscovium"],["Lv","Livermorium"],["Ts","Tennessine"],["Og","Oganesson"],
+];
+
+const tablePositions = new Map();
+const addRow = (z, period, group) => tablePositions.set(z, { row: period, col: group });
+[[1,1],[2,18]].forEach(([z,g]) => addRow(z,1,g));
+[[3,1],[4,2],[5,13],[6,14],[7,15],[8,16],[9,17],[10,18]].forEach(([z,g]) => addRow(z,2,g));
+[[11,1],[12,2],[13,13],[14,14],[15,15],[16,16],[17,17],[18,18]].forEach(([z,g]) => addRow(z,3,g));
+for (let z=19; z<=36; z++) addRow(z,4,z-18);
+for (let z=37; z<=54; z++) addRow(z,5,z-36);
+[[55,1],[56,2],[57,3],[72,4],[73,5],[74,6],[75,7],[76,8],[77,9],[78,10],[79,11],[80,12],[81,13],[82,14],[83,15],[84,16],[85,17],[86,18]].forEach(([z,g]) => addRow(z,6,g));
+[[87,1],[88,2],[89,3],[104,4],[105,5],[106,6],[107,7],[108,8],[109,9],[110,10],[111,11],[112,12],[113,13],[114,14],[115,15],[116,16],[117,17],[118,18]].forEach(([z,g]) => addRow(z,7,g));
+for (let z=58; z<=71; z++) addRow(z,8,z-54);
+for (let z=90; z<=103; z++) addRow(z,9,z-86);
+
+const state = { z: 1, charge: 0, excitation: "ground", j: "1/2", parity: "+", k: 1, mass: 1, phase: false, generated: false, solverResult: null, solverWorker: null, workerUrl: null, graspWorker: null, graspWorkerUrl: null, graspReject: null, artifactUrls: [], hyperfineArtifactUrl: null, ensdfRequestId: 0, ensdfData: null, tab: "isotope", mode: "grasp", viewYaw: -.55, viewPitch: .38, viewZoom: 1 };
+const byId = id => document.getElementById(id);
+const table = byId("periodic-table");
+const waveCanvas = byId("wave-canvas");
+const waveGl = waveCanvas.getContext("webgl2", {alpha:true, antialias:false});
+const axesCanvas = byId("axes-canvas");
+const axesCtx = axesCanvas.getContext("2d");
+const stabilityCanvas = byId("stability-canvas");
+const stabilityCtx = stabilityCanvas.getContext("2d");
+let generation = 0;
+let generationTimer = null;
+let toastTimer;
+let waveProgram = null;
+let waveTexture = null;
+let waveUniforms = null;
+let waveRendererError = null;
+
+function blockFor(z) {
+  if ((z >= 57 && z <= 71) || (z >= 89 && z <= 103)) return "f";
+  const pos = tablePositions.get(z);
+  if (pos && pos.col <= 2 && !(z >= 58 && z <= 71) && !(z >= 90 && z <= 103)) return "s";
+  if (pos && pos.col >= 13) return "p";
+  return "d";
+}
+
+function invalidatePreview() {
+  clearTimeout(generationTimer);
+  generationTimer = null;
+  generation++;
+  const rejectGrasp = state.graspReject;
+  state.graspReject = null;
+  if (rejectGrasp) {
+    const error = new Error("GRASP calculation cancelled because its inputs changed.");
+    error.cancelled = true;
+    rejectGrasp(error);
+  }
+  if (state.solverWorker) state.solverWorker.terminate();
+  if (state.workerUrl) URL.revokeObjectURL(state.workerUrl);
+  if (state.graspWorker) state.graspWorker.terminate();
+  if (state.graspWorkerUrl) URL.revokeObjectURL(state.graspWorkerUrl);
+  for (const url of state.artifactUrls) URL.revokeObjectURL(url);
+  state.solverWorker = null;
+  state.workerUrl = null;
+  state.graspWorker = null;
+  state.graspWorkerUrl = null;
+  state.artifactUrls = [];
+  state.hyperfineArtifactUrl = null;
+  state.solverResult = null;
+  state.generated = false;
+  byId("grasp-confirm").checked = false;
+  byId("research-progress").hidden = true;
+  byId("compute-overlay").hidden = true;
+  byId("generate-button").disabled = false;
+  byId("generate-button").innerHTML = '<span class="generate-spark">∿</span> Calculate density <span class="button-arrow">→</span>';
+  byId("canvas-hint").hidden = false;
+  byId("canvas-hint").querySelector("b").textContent = state.mode === "preview" ? "Ready to solve" : "Ready for GRASP";
+  byId("canvas-hint").querySelector("small").textContent = state.mode === "preview"
+    ? "Run the local numerical SCF solver"
+    : "Generate GRASP inputs or paste your own";
+  byId("research-results").hidden = true;
+  byId("orbital-select").hidden = true;
+  byId("density-state-select").hidden = true;
+  byId("phase-toggle").disabled = true;
+  byId("canvas-disclaimer").textContent = state.mode === "preview"
+    ? "NO SOLUTION YET · RUN THE LOCAL SCF SOLVER"
+    : "NO GRASP SOLUTION · SUPPLY CSF AND NUCLEAR INPUTS";
+  byId("field-meta").textContent = state.mode === "preview"
+    ? "Awaiting LDA-SCF calculation"
+    : "Awaiting GRASP MCDHF calculation";
+}
+
+function renderTable() {
+  table.replaceChildren();
+  for (let z=1; z<=118; z++) {
+    const [symbol, name] = elements[z-1];
+    const pos = tablePositions.get(z);
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `element-cell${z === state.z ? " selected" : ""}`;
+    button.dataset.block = blockFor(z);
+    button.dataset.atomicNumber = String(z);
+    button.setAttribute("role", "gridcell");
+    button.tabIndex = z === state.z ? 0 : -1;
+    button.style.gridRow = String(pos.row);
+    button.style.gridColumn = String(pos.col);
+    button.setAttribute("aria-label", `${name}, atomic number ${z}`);
+    button.setAttribute("aria-pressed", String(z === state.z));
+    button.title = `${name} (${symbol}) · ${z}`;
+    button.innerHTML = `<span class="atomic-number">${z}</span><span class="element-symbol">${symbol}</span>`;
+    button.addEventListener("click", () => selectElement(z));
+    button.addEventListener("keydown", event => {
+      const current = tablePositions.get(z);
+      if (!current) return;
+      const candidates = [...tablePositions.entries()].filter(([candidate]) => candidate !== z);
+      let next;
+      if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+        const direction = event.key === "ArrowLeft" ? -1 : 1;
+        next = candidates
+          .filter(([, position]) => position.row === current.row && Math.sign(position.col-current.col) === direction)
+          .sort((a,b) => Math.abs(a[1].col-current.col)-Math.abs(b[1].col-current.col))[0]?.[0];
+      } else if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+        const direction = event.key === "ArrowUp" ? -1 : 1;
+        next = candidates
+          .filter(([, position]) => Math.sign(position.row-current.row) === direction)
+          .sort((a,b) => Math.abs(a[1].row-current.row)-Math.abs(b[1].row-current.row)
+            || Math.abs(a[1].col-current.col)-Math.abs(b[1].col-current.col))[0]?.[0];
+      } else if (event.key === "Home" || event.key === "End") {
+        const row = candidates.filter(([, position]) => position.row === current.row)
+          .sort((a,b) => a[1].col-b[1].col);
+        next = (event.key === "Home" ? row[0] : row.at(-1))?.[0];
+      } else {
+        return;
+      }
+      if (next === undefined) return;
+      event.preventDefault();
+      selectElement(next);
+      table.querySelector(`[data-atomic-number="${next}"]`)?.focus();
+    });
+    table.append(button);
+  }
+  for (const [label, row] of [["57–71",8],["89–103",9]]) {
+    const stub = document.createElement("div");
+    stub.className = "element-cell placeholder";
+    stub.style.gridRow = String(row);
+    stub.style.gridColumn = "3";
+    stub.setAttribute("aria-hidden", "true");
+    stub.innerHTML = `<span class="element-symbol">${label}</span>`;
+    table.append(stub);
+  }
+}
+
+function currentElement() { return elements[state.z - 1]; }
+function defaultMass(z) { return Math.max(z, Math.round(z * 2.45)); }
+function symbolForMass(mass, symbol) {
+  const superscript = String(mass).replace(/[0-9]/g, digit => "⁰¹²³⁴⁵⁶⁷⁸⁹"[Number(digit)]);
+  return `${superscript}${symbol}`;
+}
+
+function selectElement(z) {
+  const restoreTableFocus = table.contains(document.activeElement);
+  state.z = z;
+  state.charge = Math.min(state.charge, z - 1);
+  state.mass = defaultMass(z);
+  clearEnsdfLevels();
+  invalidatePreview();
+  renderTable();
+  if (restoreTableFocus) table.querySelector(`[data-atomic-number="${z}"]`)?.focus();
+  updateUI();
+  drawWavefunction();
+  drawStabilityChart();
+  scheduleGeneration();
+}
+
+function updateUI() {
+  const [symbol, name] = currentElement();
+  const oldCard = byId("selected-element-card");
+  oldCard.replaceChildren();
+  const number = document.createElement("span");
+  number.className = "selected-number";
+  number.textContent = String(state.z).padStart(3, "0");
+  const sym = document.createElement("span");
+  sym.className = "selected-symbol";
+  sym.textContent = symbol;
+  const info = document.createElement("span");
+  info.className = "selected-info";
+  const strong = document.createElement("strong");
+  strong.textContent = name;
+  const small = document.createElement("small");
+  small.textContent = `Z = ${state.z} · ${blockName(blockFor(state.z))}-block`;
+  info.append(strong, small);
+  oldCard.append(number, sym, info);
+
+  const electrons = Math.max(0, state.z - state.charge);
+  byId("charge-input").min = "-118";
+  byId("charge-input").max = String(state.z - 1);
+  byId("charge-input").value = String(state.charge);
+  byId("excitation-select").value = state.excitation;
+  byId("excitation-select").disabled = false;
+  byId("j-input").value = state.j;
+  byId("parity-input").value = state.parity;
+  byId("k-input").value = String(state.k);
+  for (const id of ["j-input", "parity-input", "k-input"]) byId(id).disabled = state.mode === "preview";
+  byId("phase-toggle").disabled = !state.solverResult;
+  byId("density-view").disabled = !state.solverResult;
+  byId("charge-hint").textContent = state.charge === 0 ? "Neutral atom" : state.charge > 0 ? `Cation · ${state.charge}+` : `Anion · ${Math.abs(state.charge)}−`;
+  byId("state-hint").textContent = state.mode !== "preview"
+    ? "Starter occupation preset only; Jπ and k are selected below"
+    : ({ground:"LDA-SCF ground configuration", low:"One-electron promotion preset", medium:"One-electron promotion preset", high:"One-electron promotion preset"})[state.excitation];
+  byId("electron-count").textContent = `${electrons} ${electrons === 1 ? "electron" : "electrons"}`;
+  byId("term-symbol").textContent = "Term not resolved";
+  byId("nuclide-symbol").textContent = symbolForMass(state.mass, symbol);
+  byId("nuclide-name").textContent = `${name}-${state.mass}`;
+  byId("mass-input").value = String(state.mass);
+  const chargeLabel = state.charge === 0
+    ? "neutral"
+    : state.charge > 0 ? `${state.charge}+ ion` : `${Math.abs(state.charge)}− ion`;
+  const excitationLabel = ({ground:"ground state", low:"low excitation", medium:"moderate excitation", high:"high excitation"})[state.excitation];
+  byId("starter-selection").textContent = `${name}-${state.mass} · ${chargeLabel} · ${excitationLabel} · J=${state.j}${state.parity}, k=${state.k}`;
+  const neutrons = state.mass - state.z;
+  byId("neutron-readout").textContent = `${neutrons} ${neutrons === 1 ? "neutron" : "neutrons"} · illustrative`;
+  byId("canvas-state").textContent = state.mode !== "preview"
+    ? `GRASP CSF STATE · ${electrons} e⁻`
+    : `${state.excitation === "ground" ? "GROUND" : state.excitation.toUpperCase()} STATE · ${electrons} e⁻`;
+  byId("chart-key-label").textContent = `${symbol} highlighted`;
+  byId("chart-caption").textContent = `${name} (Z = ${state.z}) is highlighted; isotope ${symbol}-${state.mass} is marked on the schematic chart.`;
+}
+
+function blockName(block) { return ({s:"s",p:"p",d:"d",f:"f"})[block]; }
+function setCharge(value) {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed)) {
+    byId("charge-input").value = String(state.charge);
+    return;
+  }
+  state.charge = Math.max(-118, Math.min(state.z - 1, parsed));
+  invalidatePreview();
+  updateUI();
+  drawWavefunction();
+  scheduleGeneration();
+}
+
+function scheduleGeneration(delay = 120) {
+  if (state.mode !== "preview") return;
+  clearTimeout(generationTimer);
+  generationTimer = setTimeout(() => {
+    generationTimer = null;
+    startGeneration();
+  }, delay);
+}
+
+function showToast(message) {
+  const toast = byId("toast");
+  toast.textContent = message;
+  toast.classList.add("visible");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove("visible"), 2800);
+}
+
+function fitCanvas(canvas, ctx) {
+  const rect = canvas.getBoundingClientRect();
+  if (!rect.width || !rect.height) return null;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const width = Math.round(rect.width * dpr);
+  const height = Math.round(rect.height * dpr);
+  if (canvas.width !== width || canvas.height !== height) {
+    canvas.width = width;
+    canvas.height = height;
+  }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { width: rect.width, height: rect.height };
+}
+
+const PROFILE_SAMPLES = 512;
+
+function createWaveProgram() {
+  if (!waveGl) throw new Error("This browser does not support WebGL 2 for the 3D viewer.");
+  if (waveProgram) return;
+  const vertexSource = `#version 300 es
+out vec2 vUv;
+void main() {
+  vec2 p = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2));
+  vUv = p * 0.5;
+  gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0);
+}`;
+  const fragmentSource = `#version 300 es
+precision highp float;
+precision highp int;
+in vec2 vUv;
+out vec4 outColor;
+uniform vec2 uResolution;
+uniform sampler2D uProfile;
+uniform int uSamples;
+uniform float uCameraDistance;
+uniform float uYaw;
+uniform float uPitch;
+uniform bool uHasData;
+uniform bool uPhase;
+uniform int uL;
+
+vec3 rotateX(vec3 p, float a) {
+  float c = cos(a), s = sin(a);
+  return vec3(p.x, c * p.y - s * p.z, s * p.y + c * p.z);
+}
+vec3 rotateY(vec3 p, float a) {
+  float c = cos(a), s = sin(a);
+  return vec3(c * p.x + s * p.z, p.y, -s * p.x + c * p.z);
+}
+vec4 profileAt(float radius) {
+  float index = clamp(radius, 0.0, 1.0) * float(uSamples - 1);
+  int lower = int(index);
+  int upper = min(lower + 1, uSamples - 1);
+  return mix(texelFetch(uProfile, ivec2(lower, 0), 0),
+             texelFetch(uProfile, ivec2(upper, 0), 0), fract(index));
+}
+float legendre(int order, float x) {
+  if (order == 0) return 1.0;
+  float previous = 1.0, current = x;
+  for (int degree = 2; degree <= 5; degree++) {
+    if (degree > order) break;
+    float next = (float(2 * degree - 1) * x * current
+                  - float(degree - 1) * previous) / float(degree);
+    previous = current;
+    current = next;
+  }
+  return current;
+}
+void main() {
+  if (!uHasData) {
+    outColor = vec4(0.0);
+    return;
+  }
+  vec2 screen = gl_FragCoord.xy / uResolution * 2.0 - 1.0;
+  screen.x *= uResolution.x / uResolution.y;
+  vec3 rayOrigin = rotateY(rotateX(vec3(0.0, 0.0, uCameraDistance), uPitch), uYaw);
+  vec3 rayDirection = normalize(rotateY(rotateX(vec3(screen, -1.8), uPitch), uYaw));
+  float projection = dot(rayOrigin, rayDirection);
+  float discriminant = projection * projection - (dot(rayOrigin, rayOrigin) - 1.0);
+  if (discriminant <= 0.0) {
+    outColor = vec4(0.0);
+    return;
+  }
+  float root = sqrt(discriminant);
+  float distance = max(0.0, -projection - root);
+  float endDistance = -projection + root;
+  float stepLength = (endDistance - distance) / 96.0;
+  vec4 accumulated = vec4(0.0);
+  vec3 lightDirection = normalize(vec3(-0.45, 0.72, 0.8));
+  for (int step = 0; step < 96; step++) {
+    if (distance >= endDistance || accumulated.a > 0.97) break;
+    vec3 position = rayOrigin + rayDirection * distance;
+    float radius = length(position);
+    vec4 profile = profileAt(radius);
+    float alpha;
+    vec3 color;
+    if (uPhase) {
+      float radial = ((profile.g * 255.0 - 128.0) / 127.0) / max(radius, 0.015);
+      float amplitude = radial * legendre(uL, position.z / max(radius, 0.0001));
+      float strength = smoothstep(0.015, 0.24, abs(amplitude));
+      alpha = strength * 0.055;
+      color = amplitude < 0.0 ? vec3(0.95, 0.35, 0.62) : vec3(0.32, 0.88, 0.82);
+    } else {
+      float intensity = log(1.0 + 120.0 * profile.r) / log(121.0);
+      alpha = (1.0 - exp(-intensity * 0.105));
+      color = mix(vec3(0.06, 0.29, 0.40), vec3(0.62, 0.96, 0.82), intensity);
+    }
+    float lighting = 0.58 + 0.42 * max(dot(normalize(position), lightDirection), 0.0);
+    float contribution = (1.0 - accumulated.a) * alpha;
+    accumulated.rgb += color * lighting * contribution;
+    accumulated.a += contribution;
+    distance += stepLength;
+  }
+  outColor = accumulated;
+}`;
+  const compile = (type, source) => {
+    const shader = waveGl.createShader(type);
+    if (!shader) throw new Error("Could not allocate a 3D viewer shader.");
+    waveGl.shaderSource(shader, source);
+    waveGl.compileShader(shader);
+    if (!waveGl.getShaderParameter(shader, waveGl.COMPILE_STATUS)) {
+      const message = waveGl.getShaderInfoLog(shader) || "Unknown WebGL shader error.";
+      waveGl.deleteShader(shader);
+      throw new Error(message);
+    }
+    return shader;
+  };
+  const vertex = compile(waveGl.VERTEX_SHADER, vertexSource);
+  const fragment = compile(waveGl.FRAGMENT_SHADER, fragmentSource);
+  const program = waveGl.createProgram();
+  if (!program) throw new Error("Could not allocate the 3D viewer program.");
+  waveGl.attachShader(program, vertex);
+  waveGl.attachShader(program, fragment);
+  waveGl.linkProgram(program);
+  waveGl.deleteShader(vertex);
+  waveGl.deleteShader(fragment);
+  if (!waveGl.getProgramParameter(program, waveGl.LINK_STATUS)) {
+    const message = waveGl.getProgramInfoLog(program) || "Could not link the 3D viewer program.";
+    waveGl.deleteProgram(program);
+    throw new Error(message);
+  }
+  waveProgram = program;
+  waveTexture = waveGl.createTexture();
+  if (!waveTexture) throw new Error("Could not allocate the 3D density texture.");
+  waveUniforms = Object.fromEntries(
+    ["uResolution","uProfile","uSamples","uCameraDistance","uYaw","uPitch","uHasData","uPhase","uL"]
+      .map(name => [name, waveGl.getUniformLocation(program, name)])
+  );
+  waveGl.bindTexture(waveGl.TEXTURE_2D, waveTexture);
+  waveGl.texParameteri(waveGl.TEXTURE_2D, waveGl.TEXTURE_MIN_FILTER, waveGl.NEAREST);
+  waveGl.texParameteri(waveGl.TEXTURE_2D, waveGl.TEXTURE_MAG_FILTER, waveGl.NEAREST);
+  waveGl.texParameteri(waveGl.TEXTURE_2D, waveGl.TEXTURE_WRAP_S, waveGl.CLAMP_TO_EDGE);
+  waveGl.texParameteri(waveGl.TEXTURE_2D, waveGl.TEXTURE_WRAP_T, waveGl.CLAMP_TO_EDGE);
+}
+
+function resizeWaveCanvases() {
+  const rect = waveCanvas.getBoundingClientRect();
+  if (!rect.width || !rect.height) return null;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const width = Math.round(rect.width * dpr);
+  const height = Math.round(rect.height * dpr);
+  for (const canvas of [waveCanvas, axesCanvas]) {
+    if (canvas.width !== width || canvas.height !== height) {
+      canvas.width = width;
+      canvas.height = height;
+    }
+  }
+  axesCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return {width:rect.width, height:rect.height, bufferWidth:width, bufferHeight:height, dpr};
+}
+
+function sampleRadial(values, radius, radialGrid) {
+  if (radius <= radialGrid[0]) return values[0];
+  if (radius >= radialGrid[radialGrid.length - 1]) return 0;
+  let low = 0, high = radialGrid.length - 1;
+  while (high - low > 1) {
+    const middle = (low + high) >> 1;
+    if (radialGrid[middle] <= radius) low = middle;
+    else high = middle;
+  }
+  const fraction = (radius - radialGrid[low]) / (radialGrid[high] - radialGrid[low]);
+  return values[low] * (1 - fraction) + values[high] * fraction;
+}
+
+function drawAxes(size) {
+  const ctx = axesCtx;
+  ctx.clearRect(0, 0, size.width, size.height);
+  const yaw = state.viewYaw, pitch = state.viewPitch;
+  const cameraDistance = 3.15 / state.viewZoom;
+  const focalLength = size.height / 1.8;
+  const center = {x:size.width / 2, y:size.height / 2};
+  const objectToCamera = point => {
+    const cy = Math.cos(-yaw), sy = Math.sin(-yaw);
+    const x = cy * point.x + sy * point.z;
+    const z = -sy * point.x + cy * point.z;
+    const cp = Math.cos(-pitch), sp = Math.sin(-pitch);
+    return {x, y:cp * point.y - sp * z, z:sp * point.y + cp * z};
+  };
+  const project = point => {
+    const camera = objectToCamera(point);
+    const scale = focalLength / (cameraDistance - camera.z);
+    return {x:center.x + camera.x * scale, y:center.y - camera.y * scale, depth:camera.z};
+  };
+  const origin = project({x:0,y:0,z:0});
+  const axes = [
+    {label:"X", color:"#ff808b", point:{x:1.12,y:0,z:0}},
+    {label:"Y", color:"#7de0ac", point:{x:0,y:1.12,z:0}},
+    {label:"Z", color:"#82aaff", point:{x:0,y:0,z:1.12}},
+  ];
+  ctx.lineWidth = 1.5;
+  ctx.font = "10px monospace";
+  ctx.textBaseline = "middle";
+  ctx.shadowColor = "#070b12";
+  ctx.shadowBlur = 3;
+  for (const axis of axes) {
+    const endpoint = project(axis.point);
+    ctx.strokeStyle = axis.color;
+    ctx.fillStyle = axis.color;
+    ctx.globalAlpha = .58 + .42 * (endpoint.depth + 1.12) / 2.24;
+    ctx.beginPath();
+    ctx.moveTo(origin.x, origin.y);
+    ctx.lineTo(endpoint.x, endpoint.y);
+    ctx.stroke();
+    ctx.fillText(axis.label, endpoint.x + 4, endpoint.y);
+  }
+  ctx.globalAlpha = 1;
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = "#e4edf7";
+  ctx.beginPath();
+  ctx.arc(origin.x, origin.y, 2, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawWavefunction() {
+  const size = resizeWaveCanvases();
+  if (!size) return;
+  if (!waveGl) {
+    byId("canvas-hint").hidden = false;
+    byId("canvas-hint").querySelector("b").textContent = "3D graphics unavailable";
+    byId("canvas-hint").querySelector("small").textContent = "This browser needs WebGL 2 for volumetric viewing";
+    drawAxes(size);
+    return;
+  }
+  if (waveRendererError) {
+    byId("canvas-hint").hidden = false;
+    byId("canvas-hint").querySelector("b").textContent = "3D viewer failed to initialize";
+    byId("canvas-hint").querySelector("small").textContent = waveRendererError;
+    drawAxes(size);
+    return;
+  }
+  try {
+    createWaveProgram();
+  } catch (error) {
+    waveRendererError = error.message;
+    byId("canvas-hint").hidden = false;
+    byId("canvas-hint").querySelector("b").textContent = "3D viewer failed to initialize";
+    byId("canvas-hint").querySelector("small").textContent = waveRendererError;
+    drawAxes(size);
+    showToast(`3D viewer unavailable: ${error.message}`);
+    return;
+  }
+  const gl = waveGl;
+  gl.viewport(0, 0, size.bufferWidth, size.bufferHeight);
+  gl.clearColor(0, 0, 0, 0);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.useProgram(waveProgram);
+  gl.uniform2f(waveUniforms.uResolution, size.bufferWidth, size.bufferHeight);
+  gl.uniform1i(waveUniforms.uProfile, 0);
+  gl.uniform1i(waveUniforms.uSamples, PROFILE_SAMPLES);
+  gl.uniform1f(waveUniforms.uCameraDistance, 3.15 / state.viewZoom);
+  gl.uniform1f(waveUniforms.uYaw, state.viewYaw);
+  gl.uniform1f(waveUniforms.uPitch, state.viewPitch);
+  gl.uniform1i(waveUniforms.uPhase, state.phase ? 1 : 0);
+  const result = state.solverResult;
+  gl.uniform1i(waveUniforms.uHasData, result ? 1 : 0);
+  if (result) {
+    const {grid, density, orbitals, displayRadius} = result;
+    const selected = orbitals.find(item => item.name === byId("orbital-select").value) || orbitals.at(-1);
+    const orbitalGrid = selected?.grid || grid;
+    const densityMax = Math.max(1e-30, ...density.map(value => Math.max(0, value)));
+    const orbitalMax = selected ? Math.max(1e-30, ...selected.u.map(value => Math.abs(value))) : 1;
+    const profile = new Uint8Array(PROFILE_SAMPLES * 4);
+    for (let index = 0; index < PROFILE_SAMPLES; index++) {
+      const radius = displayRadius * index / (PROFILE_SAMPLES - 1);
+      const densityValue = Math.max(0, sampleRadial(density, radius, grid) / densityMax);
+      const orbitalValue = selected ? sampleRadial(selected.u, radius, orbitalGrid) / orbitalMax : 0;
+      const offset = index * 4;
+      profile[offset] = Math.round(Math.min(1, densityValue) * 255);
+      profile[offset + 1] = Math.round((Math.max(-1, Math.min(1, orbitalValue)) * .5 + .5) * 255);
+      profile[offset + 2] = 0;
+      profile[offset + 3] = 255;
+    }
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, waveTexture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, PROFILE_SAMPLES, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, profile);
+    gl.uniform1i(waveUniforms.uL, selected?.l || 0);
+  }
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  drawAxes(size);
+}
+
+function setViewZoom(zoom) {
+  state.viewZoom = Math.max(.45, Math.min(2.2, zoom));
+  byId("zoom-level").textContent = `${state.viewZoom.toFixed(1)}×`;
+  drawWavefunction();
+}
+
+function resetView() {
+  state.viewYaw = -.55;
+  state.viewPitch = .38;
+  setViewZoom(1);
+}
+
+function electronOccupations(input) {
+  const {z, charge, excitation} = input;
+  const electronCount = z - charge;
+  const orbitalMap = new Map();
+  const order = [];
+  for (let n = 1; n <= 12; n++) {
+    for (let l = 0; l < Math.min(n, 5); l++) order.push({n, l});
+  }
+  order.sort((a, b) => a.n + a.l - b.n - b.l || a.n - b.n || a.l - b.l);
+  const keyOf = (n, l) => `${n},${l}`;
+  const get = (n, l) => orbitalMap.get(keyOf(n, l));
+  const set = (n, l, occ) => {
+    const key = keyOf(n, l);
+    if (occ <= 0) orbitalMap.delete(key);
+    else orbitalMap.set(key, {n, l, occ});
+  };
+  let electronsLeft = z;
+  for (const {n, l} of order) {
+    if (electronsLeft <= 0) break;
+    const occ = Math.min(2 * (2 * l + 1), electronsLeft);
+    set(n, l, occ);
+    electronsLeft -= occ;
+  }
+  if (electronsLeft > 0) throw new Error("The occupation table does not cover this electron count.");
+
+  const exceptions = {
+    24: [[4,0,1],[3,2,5]], 29: [[4,0,1],[3,2,10]],
+    41: [[5,0,1],[4,2,4]], 42: [[5,0,1],[4,2,5]],
+    44: [[5,0,1],[4,2,7]], 45: [[5,0,1],[4,2,8]],
+    46: [[5,0,0],[4,2,10]], 47: [[5,0,1],[4,2,10]],
+    57: [[4,3,0],[5,2,1]], 58: [[4,3,1],[5,2,1]],
+    64: [[4,3,7],[5,2,1]], 78: [[6,0,1],[5,2,9]],
+    79: [[6,0,1],[5,2,10]], 89: [[5,3,0],[6,2,1]],
+    90: [[5,3,0],[6,2,2]], 91: [[5,3,2],[6,2,1]],
+    92: [[5,3,3],[6,2,1]], 93: [[5,3,4],[6,2,1]],
+    96: [[5,3,7],[6,2,1]], 103: [[6,2,0],[7,1,1]],
+  };
+  if (exceptions[z]) {
+    for (const [n, l, occ] of exceptions[z]) set(n, l, occ);
+  }
+  if (charge > 0) {
+    let remaining = charge;
+    const removalOrder = [...orbitalMap.values()].sort((a,b) => b.n-a.n || b.l-a.l);
+    for (const orbital of removalOrder) {
+      const removed = Math.min(remaining, orbital.occ);
+      set(orbital.n, orbital.l, orbital.occ - removed);
+      remaining -= removed;
+      if (!remaining) break;
+    }
+    if (remaining) throw new Error("Could not remove the requested number of electrons from this configuration.");
+  } else if (charge < 0) {
+    let remaining = -charge;
+    for (const orbital of order) {
+      if (!remaining) break;
+      const occupiedCount = get(orbital.n,orbital.l)?.occ || 0;
+      const added = Math.min(remaining, 2*(2*orbital.l+1)-occupiedCount);
+      if (added > 0) set(orbital.n,orbital.l,occupiedCount+added);
+      remaining -= added;
+    }
+    if (remaining) throw new Error("The occupation table does not cover this anion.");
+  }
+  const configuredElectrons = [...orbitalMap.values()].reduce((sum, orbital) => sum + orbital.occ, 0);
+  if (configuredElectrons !== electronCount) throw new Error("The ground-configuration table is inconsistent for this ion.");
+
+  if (excitation !== "ground") {
+    const source = [...orbitalMap.values()].sort((a,b) => b.n-a.n || b.l-a.l)[0];
+    if (!source || source.occ < 1) throw new Error("No occupied orbital is available for the selected excitation.");
+    const targets = excitation === "low"
+      ? [[source.n, source.l + 1], [source.n + 1, source.l], [source.n + 1, 0]]
+      : excitation === "medium"
+        ? [[source.n + 1, source.l], [source.n + 1, source.l + 1], [source.n + 2, 0]]
+        : [[source.n + 2, source.l], [source.n + 2, source.l + 1], [source.n + 3, 0]];
+    const target = targets.find(([n,l]) => l < n && l < 5 && (get(n,l)?.occ || 0) < 2 * (2*l+1));
+    if (!target) throw new Error("Could not construct an occupied-to-virtual promotion for this excitation preset.");
+    set(source.n, source.l, source.occ - 1);
+    set(target[0], target[1], (get(target[0],target[1])?.occ || 0) + 1);
+  }
+
+  return [...orbitalMap.values()].sort((a,b) => a.n-b.n || a.l-b.l);
+}
+
+function parseTwoJ(value) {
+  const text = String(value).trim();
+  const fraction = text.match(/^(\d+)\/2$/);
+  if (fraction) return Number(fraction[1]);
+  const decimal = text.match(/^(\d+)(?:\.(0|5))?$/);
+  if (!decimal) throw new Error("J must be a non-negative integer or half-integer (for example 0, 1, or 3/2).");
+  return Number(decimal[1]) * 2 + (decimal[2] === "5" ? 1 : 0);
+}
+
+function canonicalJ(value) {
+  const twoJ = parseTwoJ(value);
+  return twoJ % 2 === 0 ? String(twoJ / 2) : `${twoJ}/2`;
+}
+
+function makeGraspStarter(input) {
+  const occupied = electronOccupations(input);
+  const twoJ = parseTwoJ(input.j);
+  if (twoJ % 2 !== (input.z - input.charge) % 2) {
+    throw new Error("The requested J is incompatible with the selected electron count (integer J for even N, half-integer J for odd N).");
+  }
+  const coreOptions = [
+    {index:1, electrons:2, subshells:[[1,0,2]]},
+    {index:2, electrons:10, subshells:[[1,0,2],[2,0,2],[2,1,6]]},
+    {index:3, electrons:18, subshells:[[1,0,2],[2,0,2],[2,1,6],[3,0,2],[3,1,6]]},
+    {index:4, electrons:36, subshells:[[1,0,2],[2,0,2],[2,1,6],[3,0,2],[3,1,6],[3,2,10],[4,0,2],[4,1,6]]},
+    {index:5, electrons:54, subshells:[[1,0,2],[2,0,2],[2,1,6],[3,0,2],[3,1,6],[3,2,10],[4,0,2],[4,1,6],[4,2,10],[5,0,2],[5,1,6]]},
+    {index:6, electrons:86, subshells:[[1,0,2],[2,0,2],[2,1,6],[3,0,2],[3,1,6],[3,2,10],[4,0,2],[4,1,6],[4,2,10],[5,0,2],[5,1,6],[4,3,14],[5,2,10],[6,0,2],[6,1,6]]},
+  ];
+  const core = coreOptions.reverse().find(option =>
+    option.electrons < input.z - input.charge
+    && option.subshells.every(([n,l,occ]) => occupied.some(shell => shell.n === n && shell.l === l && shell.occ === occ))
+  );
+  const coreSubshells = new Set(core?.subshells.map(([n,l]) => `${n},${l}`) || []);
+  const valence = occupied.filter(({n,l}) => !coreSubshells.has(`${n},${l}`));
+  const configurationParity = valence.reduce((sum, orbital) => sum + orbital.l * orbital.occ, 0) % 2 === 0 ? "+" : "-";
+  if (configurationParity !== input.parity) {
+    throw new Error(`The starter configuration has ${configurationParity} parity, not the requested ${input.parity}. Edit the CSF configuration to include the target parity.`);
+  }
+  const angularNames = "spdfg";
+  const configuration = valence
+    .map(({n, l, occ}) => `${n}${angularNames[l]}(${occ},i)`)
+    .join("");
+  const highestNByL = new Map();
+  for (const {n, l} of valence) highestNByL.set(l, Math.max(highestNByL.get(l) || 0, n));
+  const activeOrbitals = [...highestNByL]
+    .sort(([left], [right]) => left - right)
+    .map(([l, n]) => `${n}${angularNames[l]}`)
+    .join(",");
+  const nucleusAnswers = `${input.z}\n${input.mass}\nn\n${input.mass}\n0\n0\n0\n`;
+  const csfAnswers = `*\n${core?.index || 0}\n${configuration}\n\n${activeOrbitals}\n${twoJ},${twoJ}\n0\nn\n`;
+  return {configuration, activeOrbitals, core, nucleusAnswers, csfAnswers};
+}
+
+function radialScf(input, report) {
+  const z = input.z;
+  const mass = input.mass;
+  const electronCount = z - input.charge;
+  const orbitals = [];
+  const orbitalName = (n, l) => `${n}${"spdfg"[l]}`;
+  const occupied = electronOccupations(input);
+  const maxN = Math.max(...occupied.map(orbital => orbital.n));
+  const gridCount = 360;
+  const rMin = 1e-7;
+  const rMax = Math.max(80, 18 * (maxN + 1) ** 2);
+  const logStep = Math.log(rMax / rMin) / (gridCount - 1);
+  const r = new Float64Array(gridCount);
+  for (let i = 0; i < gridCount; i++) r[i] = rMin * Math.exp(i * logStep);
+  const radiusNucleus = 1.2 * Math.cbrt(mass) / 52917.721;
+  const nuclear = new Float64Array(gridCount);
+  for (let i = 0; i < gridCount; i++) {
+    nuclear[i] = r[i] < radiusNucleus
+      ? -z * (3 - (r[i] / radiusNucleus) ** 2) / (2 * radiusNucleus)
+      : -z / r[i];
+  }
+  let potential = nuclear.slice();
+  let radialDensity = new Float64Array(gridCount);
+  let residual = Infinity;
+  let converged = false;
+  const maxIterations = 18;
+  let iterations = 0;
+
+  for (let iteration = 0; iteration < maxIterations; iteration++) {
+    iterations = iteration + 1;
+    const solved = [];
+    radialDensity = new Float64Array(gridCount);
+    for (const orbital of occupied) {
+      const solution = solveOrbital(orbital.n, orbital.l, z, potential, r, logStep);
+      solved.push({...orbital, energy: solution.energy, u: solution.u, name: orbitalName(orbital.n,orbital.l)});
+      for (let i = 0; i < gridCount; i++) radialDensity[i] += orbital.occ * solution.u[i] ** 2;
+    }
+    const nextPotential = makePotential(r, radialDensity, nuclear, logStep);
+    residual = 0;
+    for (let i = 0; i < gridCount; i++) {
+      residual = Math.max(residual, Math.abs(nextPotential[i] - potential[i]) / (1 + Math.abs(potential[i])));
+    }
+    potential = potential.map((value, i) => .58 * value + .42 * nextPotential[i]);
+    orbitals.splice(0, orbitals.length, ...solved);
+    report({
+      progress: Math.min(88, 8 + Math.round((iteration + 1) / maxIterations * 80)),
+      title: `SCF iteration ${iteration + 1} of ${maxIterations}`,
+      detail: `Solving ${occupied.length} radial orbitals · residual ${residual.toExponential(2)}`,
+    });
+    if (residual < 8e-4) {
+      converged = true;
+      break;
+    }
+  }
+
+  const density = new Float32Array(gridCount);
+  let total = 0;
+  for (let i = 0; i < gridCount; i++) {
+    density[i] = radialDensity[i] / (4 * Math.PI * r[i] * r[i]);
+    total += radialDensity[i] * r[i] * logStep;
+  }
+  let enclosed = 0;
+  let displayRadius = r[r.length - 1];
+  for (let i = 1; i < gridCount; i++) {
+    enclosed += .5 * (radialDensity[i-1] + radialDensity[i]) * .5 * (r[i-1]+r[i]) * logStep;
+    if (enclosed >= .995 * electronCount) {
+      displayRadius = r[i];
+      break;
+    }
+  }
+  report({progress: 96, title: "Preparing computed density", detail: "Normalizing the spherical one-electron density field…"});
+  return {
+    grid: Float32Array.from(r),
+    density,
+    orbitals: orbitals.map(orbital => ({
+      name: orbital.name, n: orbital.n, l: orbital.l, occ: orbital.occ,
+      energy: orbital.energy, u: Float32Array.from(orbital.u),
+    })),
+    electronCount,
+    iterations,
+    residual,
+    converged,
+    integratedElectrons: total,
+    displayRadius: Math.max(displayRadius, rMin * 10),
+    model: "Spherical nonrelativistic Kohn–Sham LDA-SCF with Slater exchange and PZ81 correlation (spin-unpolarized)",
+    nuclearRadius: radiusNucleus,
+  };
+
+  function solveOrbital(n, l, nuclearCharge, v, grid, h) {
+    const nodesWanted = n - l - 1;
+    const size = grid.length - 2;
+    const diagonal = new Float64Array(size);
+    const offDiagonal = new Float64Array(size - 1);
+    let lowerBound = Infinity;
+    for (let j = 0; j < size; j++) {
+      const i = j + 1;
+      diagonal[j] = 1 / (h*h*grid[i]*grid[i]) + v[i] + (l*(l+1)+.25) / (2*grid[i]*grid[i]);
+      const rowRadius = (j ? Math.abs(offDiagonal[j-1]) : 0);
+      if (j < size - 1) offDiagonal[j] = -1 / (2*h*h*grid[i]*grid[i+1]);
+      lowerBound = Math.min(lowerBound, diagonal[j] - rowRadius - (j < size - 1 ? Math.abs(offDiagonal[j]) : 0));
+    }
+
+    function countBelow(energy) {
+      let pivot = diagonal[0] - energy;
+      let count = pivot < 0 ? 1 : 0;
+      if (Math.abs(pivot) < 1e-24) pivot = pivot < 0 ? -1e-24 : 1e-24;
+      for (let i = 1; i < size; i++) {
+        pivot = diagonal[i] - energy - offDiagonal[i-1]*offDiagonal[i-1]/pivot;
+        if (pivot < 0) count++;
+        if (Math.abs(pivot) < 1e-24) pivot = pivot < 0 ? -1e-24 : 1e-24;
+      }
+      return count;
+    }
+
+    let low = lowerBound - 1;
+    let high = 0;
+    for (let attempt = 0; attempt < 8 && countBelow(low) > nodesWanted; attempt++) low = low * 2 - 1;
+    if (countBelow(low) > nodesWanted || countBelow(high) <= nodesWanted) {
+      throw new Error(`${orbitalName(n,l)} is not bound in this LDA potential and finite grid.`);
+    }
+    for (let iteration = 0; iteration < 64; iteration++) {
+      const middle = .5 * (low + high);
+      if (countBelow(middle) > nodesWanted) high = middle;
+      else low = middle;
+    }
+    const energy = .5 * (low + high);
+    const shift = energy + Math.max(1e-8, Math.abs(energy) * 1e-9);
+    let vector = Float64Array.from({length:size}, (_,i) => Math.sin((i+1)*(n*1.234+l*.731)) + .2);
+    for (let iteration = 0; iteration < 12; iteration++) {
+      const upper = new Float64Array(size);
+      const rhs = new Float64Array(size);
+      let pivot = diagonal[0] - shift;
+      if (Math.abs(pivot) < 1e-24) pivot = pivot < 0 ? -1e-24 : 1e-24;
+      upper[0] = offDiagonal[0] / pivot;
+      rhs[0] = vector[0] / pivot;
+      for (let i = 1; i < size; i++) {
+        pivot = diagonal[i] - shift - offDiagonal[i-1] * upper[i-1];
+        if (Math.abs(pivot) < 1e-24) pivot = pivot < 0 ? -1e-24 : 1e-24;
+        if (i < size - 1) upper[i] = offDiagonal[i] / pivot;
+        rhs[i] = (vector[i] - offDiagonal[i-1] * rhs[i-1]) / pivot;
+      }
+      for (let i = size - 2; i >= 0; i--) rhs[i] -= upper[i] * rhs[i+1];
+      let norm = Math.sqrt(rhs.reduce((sum,value) => sum + value*value, 0));
+      if (!Number.isFinite(norm) || norm === 0) throw new Error(`Could not normalize ${orbitalName(n,l)}.`);
+      vector = rhs.map(value => value / norm);
+    }
+    const u = new Float64Array(grid.length);
+    for (let j = 0; j < size; j++) u[j+1] = vector[j] / Math.sqrt(grid[j+1] * h);
+    return {energy, u};
+  }
+
+  function makePotential(grid, radial, nuc, h) {
+    const inside = new Float64Array(grid.length);
+    const outside = new Float64Array(grid.length);
+    for (let i = 1; i < grid.length; i++) {
+      const dr = grid[i] - grid[i-1];
+      inside[i] = inside[i-1] + .5 * (radial[i] + radial[i-1]) * dr;
+    }
+    for (let i = grid.length - 2; i >= 0; i--) {
+      const dr = grid[i+1] - grid[i];
+      outside[i] = outside[i+1] + .5 * (
+        radial[i] / grid[i] + radial[i+1] / grid[i+1]
+      ) * dr;
+    }
+    const result = new Float64Array(grid.length);
+    for (let i = 0; i < grid.length; i++) {
+      const rho = radial[i] / (4 * Math.PI * grid[i] * grid[i]);
+      result[i] = nuc[i] + inside[i] / grid[i] + outside[i] + ldaPotential(rho);
+    }
+    return result;
+  }
+
+  function ldaPotential(rho) {
+    if (!(rho > 1e-20)) return 0;
+    const exchange = -((3 * rho / Math.PI) ** (1/3));
+    const rs = (3 / (4 * Math.PI * rho)) ** (1/3);
+    let epsilon, derivative;
+    if (rs < 1) {
+      const a=.0311, b=-.048, c=.0020, d=-.0116;
+      epsilon = a*Math.log(rs)+b+c*rs*Math.log(rs)+d*rs;
+      derivative = a/rs+c*(Math.log(rs)+1)+d;
+    } else {
+      const gamma=-.1423, b1=1.0529, b2=.3334;
+      const denominator=1+b1*Math.sqrt(rs)+b2*rs;
+      epsilon=gamma/denominator;
+      derivative=-gamma*(b1/(2*Math.sqrt(rs))+b2)/(denominator*denominator);
+    }
+    return exchange + epsilon - rs*derivative/3;
+  }
+}
+
+function createSolverWorker() {
+  const source = `"use strict"; const electronOccupations = ${electronOccupations.toString()}; const radialScf = ${radialScf.toString()}; self.onmessage = event => { try { const result = radialScf(event.data, progress => self.postMessage({type:"progress", ...progress})); self.postMessage({type:"result", result}); } catch (error) { self.postMessage({type:"error", error: error.message || String(error)}); } };`;
+  const url = URL.createObjectURL(new Blob([source], {type: "text/javascript"}));
+  try {
+    return {worker: new Worker(url), url};
+  } catch (error) {
+    URL.revokeObjectURL(url);
+    throw error;
+  }
+}
+
+function startGeneration() {
+  if (state.mode !== "preview" || byId("generate-button").disabled) return;
+  clearTimeout(generationTimer);
+  generationTimer = null;
+  invalidatePreview();
+  const token = generation;
+  const overlay = byId("compute-overlay");
+  const button = byId("generate-button");
+  overlay.hidden = false;
+  byId("canvas-hint").hidden = true;
+  button.disabled = true;
+  byId("compute-title").textContent = "Self-consistent LDA-SCF calculation";
+  byId("compute-step").textContent = "Building radial grid and orbital occupations…";
+  byId("compute-percent").textContent = "2%";
+  byId("progress-fill").style.width = "2%";
+  try {
+    const {worker, url} = createSolverWorker();
+    state.solverWorker = worker;
+    state.workerUrl = url;
+    worker.onmessage = event => {
+      if (token !== generation) return;
+      const message = event.data;
+      if (message.type === "progress") {
+        byId("compute-title").textContent = message.title;
+        byId("compute-step").textContent = message.detail;
+        byId("compute-percent").textContent = `${message.progress}%`;
+        byId("progress-fill").style.width = `${message.progress}%`;
+        return;
+      }
+      worker.terminate();
+      URL.revokeObjectURL(url);
+      state.solverWorker = null;
+      state.workerUrl = null;
+      button.disabled = false;
+      overlay.hidden = true;
+      if (message.type === "error") {
+        byId("canvas-hint").hidden = false;
+        byId("canvas-hint").querySelector("b").textContent = "SCF calculation failed";
+        byId("canvas-hint").querySelector("small").textContent = message.error;
+        byId("field-meta").textContent = "No density result · calculation failed";
+        showToast(message.error);
+        return;
+      }
+      state.solverResult = message.result;
+      state.generated = true;
+      populateOrbitalSelector();
+      drawWavefunction();
+      byId("generate-button").innerHTML = '<span class="generate-spark">↻</span> Recalculate density <span class="button-arrow">→</span>';
+      byId("canvas-disclaimer").textContent = "SPHERICAL NONRELATIVISTIC KOHN–SHAM LDA DENSITY · APPROXIMATE";
+      byId("field-meta").textContent = `LDA-SCF · ${message.result.iterations} iterations · ${message.result.converged ? "converged" : "NOT CONVERGED"} · residual ${message.result.residual.toExponential(2)}`;
+      byId("canvas-state").textContent = `${state.excitation === "ground" ? "GROUND" : state.excitation.toUpperCase()} · ${message.result.electronCount} e⁻`;
+      if (!message.result.converged) showToast("SCF reached its iteration limit; inspect the unconverged density cautiously.");
+    };
+    worker.onerror = event => {
+      if (token !== generation) return;
+      worker.terminate();
+      URL.revokeObjectURL(url);
+      state.solverWorker = null;
+      state.workerUrl = null;
+      button.disabled = false;
+      overlay.hidden = true;
+      byId("canvas-hint").hidden = false;
+      byId("canvas-hint").querySelector("b").textContent = "Solver worker failed";
+      byId("canvas-hint").querySelector("small").textContent = event.message || "This browser could not start the local solver worker.";
+      byId("field-meta").textContent = "No density result · solver worker failed";
+      showToast(event.message || "This browser could not start the local solver worker.");
+    };
+    worker.postMessage({z: state.z, charge: state.charge, mass: state.mass, excitation: state.excitation});
+  } catch (error) {
+    button.disabled = false;
+    overlay.hidden = true;
+    byId("canvas-hint").hidden = false;
+    byId("canvas-hint").querySelector("b").textContent = "Solver unavailable";
+    byId("canvas-hint").querySelector("small").textContent = error.message;
+    byId("field-meta").textContent = "No density result · solver unavailable";
+    showToast(error.message);
+  }
+}
+
+function cancelGeneration() {
+  if (!state.solverWorker) return;
+  generation++;
+  state.solverWorker.terminate();
+  if (state.workerUrl) URL.revokeObjectURL(state.workerUrl);
+  state.solverWorker = null;
+  state.workerUrl = null;
+  state.generated = false;
+  state.solverResult = null;
+  byId("compute-overlay").hidden = true;
+  byId("generate-button").disabled = false;
+  byId("canvas-hint").hidden = false;
+  byId("canvas-hint").querySelector("b").textContent = "Calculation cancelled";
+  byId("canvas-hint").querySelector("small").textContent = "Change the inputs or calculate when ready";
+  byId("field-meta").textContent = "No density result · cancelled";
+}
+
+function populateOrbitalSelector() {
+  const select = byId("orbital-select");
+  select.replaceChildren();
+  for (const orbital of state.solverResult.orbitals) {
+    const option = document.createElement("option");
+    option.value = orbital.name;
+    option.textContent = Number.isFinite(orbital.energy)
+      ? `${orbital.name} · occ ${orbital.occ} · ${orbital.energy.toFixed(4)} Ha`
+      : `${orbital.name} · Dirac large component`;
+    select.append(option);
+  }
+  select.value = state.solverResult.orbitals.at(-1)?.name || "";
+  select.hidden = false;
+  byId("phase-toggle").disabled = false;
+  byId("phase-toggle").title = "Show the sign of the selected real orbital's radial component";
+}
+
+function populateDensityStateSelector() {
+  const select = byId("density-state-select");
+  const states = state.solverResult.densityStates || [];
+  select.replaceChildren();
+  for (const [index, densityState] of states.entries()) {
+    const option = document.createElement("option");
+    option.value = String(index);
+    option.textContent = `${densityState.label} · ∫ρd³r ${densityState.electronCount.toFixed(4)} e⁻`;
+    select.append(option);
+  }
+  select.hidden = states.length < 2;
+  select.value = String(state.solverResult.selectedDensityState || 0);
+}
+
+function selectDensityState(index) {
+  const selected = state.solverResult?.densityStates?.[index];
+  if (!selected) return;
+  state.solverResult.selectedDensityState = index;
+  state.solverResult.grid = selected.grid;
+  state.solverResult.density = selected.density;
+  state.solverResult.displayRadius = selected.displayRadius;
+  byId("term-symbol").textContent = selected.label;
+  byId("canvas-state").textContent = `GRASP · ${selected.label}`;
+  byId("field-meta").textContent = `GRASP density · ${selected.electronCount.toFixed(4)} electrons integrated`;
+  drawWavefunction();
+}
+
+function setMode(mode, closeDialog = true) {
+  if (state.mode === mode) {
+    if (closeDialog) closeModeDialog();
+    return;
+  }
+  invalidatePreview();
+  state.mode = mode;
+  const isPreview = mode === "preview";
+  const isServer = mode === "server";
+  const isGrasp = !isPreview;
+  document.body.classList.toggle("mode-grasp", isGrasp);
+  updateUI();
+  byId("research-panel").hidden = !isGrasp;
+  byId("preview-actions").hidden = isGrasp;
+  byId("mode-title").textContent = isPreview ? "BROWSER LDA PREVIEW" : isServer ? "NATIVE GRASP SERVER" : "BROWSER GRASP MCDHF";
+  byId("mode-subtitle").textContent = isPreview ? "Numerical approximation" : isServer ? "Loopback server" : "Bundled WebAssembly engine";
+  byId("method-copy").innerHTML = isPreview
+    ? "Browser preview solves a <b>spherical, nonrelativistic Kohn–Sham LDA-SCF model</b> using a log-grid finite-difference radial eigenproblem."
+    : isServer
+      ? "Native mode runs the <b>GRASP MCDHF/RCI engine</b> installed on this computer through the optional loopback server."
+      : "Browser mode runs the <b>GRASP relativistic MCDHF/RCI engine</b> locally in WebAssembly; no local server is needed.";
+  const methodTags = isPreview
+    ? ["LDA-SCF", "log-grid finite difference", "PZ81 XC", "finite nucleus"]
+    : ["Dirac MCDHF", "optional RCI", "user-supplied nuclear model", "no automatic QED"];
+  byId("method-tags").replaceChildren(...methodTags.map(text => {
+    const tag = document.createElement("span");
+    tag.textContent = text;
+    return tag;
+  }));
+  byId("engine-kicker").textContent = isServer ? "LOCAL SERVER RESEARCH ENGINE" : "BROWSER-LOCAL RESEARCH ENGINE";
+  byId("engine-heading").textContent = isServer ? "GRASP · native workflow" : "GRASP · MCDHF workflow";
+  byId("engine-intro").innerHTML = isServer
+    ? 'Generate approximate starter files from the current atom, ion, excitation, and isotope selection, or edit the inputs below. The loopback server runs <code>rangular</code>, <code>rwfnestimate</code>, and <code>rmcdhf</code>; optional <code>rci</code> uses your settings.'
+    : 'Generate approximate starter files from the current atom, ion, excitation, and isotope selection, or edit the inputs below. The bundled engine runs locally in a WebAssembly worker; it needs no network or server. Optional <code>rci</code> runs with your supplied settings.';
+  byId("research-limit").textContent = isServer
+    ? "The native engine returns GRASP files but does not parse the result in this viewer."
+    : "MCDHF/RCI results depend on your CSF basis, nuclear model, convergence, and enabled corrections.";
+  byId("run-grasp").innerHTML = `<span class="generate-spark">▶</span> ${isServer ? "Run native GRASP" : "Run bundled GRASP"} <span class="button-arrow">→</span>`;
+  byId("backend-help").hidden = !isServer;
+  byId("canvas-disclaimer").textContent = isPreview
+    ? "NO SOLUTION YET · RUN THE LOCAL SCF SOLVER"
+    : isServer
+      ? "NATIVE GRASP FILES ARE AVAILABLE BELOW · VISUALIZER USES BROWSER RESULTS ONLY"
+      : "NO GRASP SOLUTION · SUPPLY CSF AND NUCLEAR INPUTS";
+  byId("field-meta").textContent = isPreview ? "Awaiting LDA-SCF calculation" : "Awaiting GRASP MCDHF calculation";
+  byId("canvas-hint").querySelector("b").textContent = isPreview ? "Ready to solve" : "Ready for GRASP";
+  byId("canvas-hint").querySelector("small").textContent = isPreview
+    ? "Run the local numerical SCF solver"
+    : "Generate GRASP inputs or paste your own";
+  byId("canvas-hint").hidden = false;
+  byId("compute-overlay").hidden = true;
+  if (closeDialog) closeModeDialog();
+  drawWavefunction();
+  if (isPreview) scheduleGeneration();
+  else if (isServer) refreshBackendStatus();
+  else refreshWasmStatus();
+}
+
+function closeModeDialog() {
+  byId("mode-dialog").hidden = true;
+  byId("mode-switch").setAttribute("aria-expanded", "false");
+  byId("mode-switch").focus();
+}
+
+async function refreshBackendStatus() {
+  const status = byId("backend-status");
+  status.classList.remove("online", "error");
+  status.querySelector("span").textContent = "Checking local engine…";
+  if (location.protocol === "file:") {
+    status.classList.add("error");
+    status.querySelector("span").textContent = "Open app through the local server";
+    showToast("Native GRASP requires opening Orbital from the local server, not file://.");
+    return;
+  }
+  try {
+    const response = await fetch("/api/health", {cache: "no-store"});
+    if (!response.ok) throw new Error(`Local server returned HTTP ${response.status}.`);
+    const health = await response.json();
+    status.classList.toggle("online", health.available === true);
+    status.classList.toggle("error", health.available !== true);
+    status.querySelector("span").textContent = health.available
+      ? "GRASP ready"
+      : `GRASP not ready: ${health.missing.join(", ")}`;
+  } catch (error) {
+    status.classList.add("error");
+    status.querySelector("span").textContent = "Local backend unavailable";
+    showToast(error instanceof TypeError
+      ? "Start the local server from README.md, then open its http://127.0.0.1 page."
+      : error.message);
+  }
+}
+
+function refreshWasmStatus() {
+  const status = byId("backend-status");
+  status.classList.remove("online", "error");
+  const required = ["rnucleus", "rcsfgenerate", "rangular", "rwfnestimate", "rmcdhf", "rci", "rdensity", "rwfntotxt"];
+  const missing = required.filter(name => !window.ORBITAL_GRASP_SOURCES?.[name]);
+  status.classList.toggle("online", missing.length === 0);
+  status.classList.toggle("error", missing.length !== 0);
+  status.querySelector("span").textContent = missing.length
+    ? `Bundled engine missing: ${missing.join(", ")}`
+    : "GRASP WebAssembly ready · offline";
+}
+
+function graspWasmWorker() {
+  const moduleNames = {
+    rnucleus: "createRnucleusModule",
+    rcsfgenerate: "createRcsfgenerateModule",
+    rangular: "createRangularModule",
+    rwfnestimate: "createRwfnestimateModule",
+    rmcdhf: "createRmcdhfModule",
+    rci: "createRciModule",
+    rdensity: "createRdensityModule",
+    rwfntotxt: "createRwfntotxtModule",
+  };
+  let log = "";
+
+  self.onmessage = async event => {
+    const {input, sources} = event.data;
+    const files = new Map(Object.entries(input.files || {}).map(([name, text]) => [name, new TextEncoder().encode(text)]));
+    if (input.configuration) files.set("rcsf.inp", new TextEncoder().encode(input.configuration));
+    if (input.isodata) files.set("isodata", new TextEncoder().encode(input.isodata));
+    const appendLog = (program, line) => {
+      const entry = `[${program}] ${line}\n`;
+      log = (log + entry).slice(-60000);
+      self.postMessage({type:"log", line:entry});
+    };
+
+    async function runProgram(name, answers, progress) {
+      self.postMessage({type:"progress", progress, step:`Loading ${name}`});
+      const encodedSource = sources[name];
+      if (!encodedSource) throw new Error(`Bundled GRASP executable '${name}' is missing.`);
+      const sourceBytes = Uint8Array.from(atob(encodedSource), character => character.charCodeAt(0));
+      const sourceText = new TextDecoder().decode(sourceBytes);
+      const sourceUrl = URL.createObjectURL(new Blob([sourceText], {type:"text/javascript"}));
+      try {
+        importScripts(sourceUrl);
+      } finally {
+        URL.revokeObjectURL(sourceUrl);
+      }
+      const factory = self[moduleNames[name]];
+      if (typeof factory !== "function") throw new Error(`GRASP WebAssembly module '${name}' did not initialize.`);
+      const stdin = new TextEncoder().encode(answers);
+      let stdinOffset = 0;
+      let exitCode = 0;
+      const config = {
+        stdin: () => stdinOffset < stdin.length ? stdin[stdinOffset++] : null,
+        print: line => appendLog(name, line),
+        printErr: line => appendLog(name, line),
+        onExit: code => { exitCode = code; },
+        preRun: [() => {
+          for (const [filename, data] of files) config.FS.writeFile(`/${filename}`, data);
+        }],
+      };
+      await factory(config);
+      if (exitCode !== 0) throw new Error(`${name} exited with status ${exitCode}.`);
+      for (const filename of config.FS.readdir("/")) {
+        if (filename === "." || filename === "..") continue;
+        try {
+          const stat = config.FS.stat(`/${filename}`);
+          if (config.FS.isFile(stat.mode)) files.set(filename, config.FS.readFile(`/${filename}`));
+        } catch {}
+      }
+    }
+
+    try {
+      if (input.action === "generate") {
+        await runProgram("rnucleus", input.nucleusAnswers, 20);
+        if (!files.has("isodata")) throw new Error("rnucleus completed without producing isodata.");
+        if (input.mass < 20) {
+          const radius = log.match(/default root mean squared radius is\s+([^\s;]+)/i)?.[1];
+          if (!radius || !Number.isFinite(Number(radius))) {
+            throw new Error("Could not read the GRASP default nuclear radius needed to generate light-isotope data.");
+          }
+          const nucleusAnswers = `${input.z}\n${input.mass}\ny\n${radius}\n0.5\n${input.mass}\n0\n0\n0\n`;
+          await runProgram("rnucleus", nucleusAnswers, 24);
+          if (!files.has("isodata")) throw new Error("rnucleus completed without producing revised light-isotope data.");
+        }
+        await runProgram("rcsfgenerate", input.csfAnswers, 75);
+        if (!files.has("rcsf.out")) throw new Error("rcsfgenerate completed without producing rcsf.out.");
+        const blockCount = Number(log.match(/\[rcsfgenerate\]\s+(\d+)\s+blocks were created/)?.[1]);
+        if (!Number.isInteger(blockCount) || blockCount < 1) {
+          throw new Error("Could not determine generated symmetry-block count from rcsfgenerate output.");
+        }
+        const rmcdhfAnswers = `y\n${"1\n".repeat(blockCount)}5\n*\n*\n100\n`;
+        self.postMessage({
+          type:"starter",
+          configuration:new TextDecoder().decode(files.get("rcsf.out")),
+          isodata:new TextDecoder().decode(files.get("isodata")),
+          rangularAnswers:"y\n",
+          rwfnestimateAnswers:input.z >= 13 ? "y\n2\n*\n" : "y\n3\n*\n",
+          rmcdhfAnswers,
+          blockCount,
+          log,
+        });
+        return;
+      }
+      const stateName = input.stateName;
+      await runProgram("rangular", input.rangularAnswers, 12);
+      if (!files.has("mcp.30")) throw new Error("rangular completed without producing mcp.30; check the CSF input and answer transcript.");
+      await runProgram("rwfnestimate", input.rwfnestimateAnswers, 25);
+      if (!files.has("rwfn.inp")) throw new Error("rwfnestimate completed without producing rwfn.inp.");
+      await runProgram("rmcdhf", input.rmcdhfAnswers, 60);
+      if (!files.has("rwfn.out") || !files.has("rmix.out")) throw new Error("rmcdhf did not produce both rwfn.out and rmix.out.");
+      if (input.rciAnswers.trim()) {
+        files.delete("rmix.out");
+        await runProgram("rci", input.rciAnswers, 76);
+        if (!files.has("rmix.out")) throw new Error("rci completed without producing rmix.out.");
+      }
+      files.set(`${stateName}.c`, files.get("rcsf.inp"));
+      files.set(`${stateName}.w`, files.get("rwfn.out"));
+      files.set(`${stateName}.cm`, files.get("rmix.out"));
+      files.set("rwfn.inp", files.get("rwfn.out"));
+      await runProgram("rwfntotxt", "", input.rciAnswers.trim() ? 88 : 83);
+      if (!files.has("rwfn.plot")) throw new Error("rwfntotxt completed without producing rwfn.plot.");
+      await runProgram("rdensity", `y\n${stateName}\ny\n2\n`, 96);
+      const densityName = `${stateName}.cd`;
+      if (!files.has(densityName) || files.get(densityName).length === 0) {
+        throw new Error(`rdensity did not produce ${densityName}; check the selected state and mixing coefficients.`);
+      }
+      const artifacts = [];
+      let totalBytes = 0;
+      for (const [name, data] of files) {
+        if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(name) || ["rcsf.inp","isodata","rwfn.inp"].includes(name)) continue;
+        totalBytes += data.byteLength;
+        if (totalBytes > 150_000_000) throw new Error("GRASP outputs exceed the 150 MB in-browser artifact limit.");
+        const copy = data.slice();
+        artifacts.push({name, data:copy.buffer});
+      }
+      const transfers = artifacts.map(file => file.data);
+      self.postMessage({
+        type:"result",
+        log,
+        densityText:new TextDecoder().decode(files.get(densityName)),
+        wavefunctionText:new TextDecoder().decode(files.get("rwfn.plot")),
+        artifacts,
+      }, transfers);
+    } catch (error) {
+      self.postMessage({type:"error", error:error.message || String(error), log});
+    }
+  };
+}
+
+function parseGraspOutputs(densityText, wavefunctionText) {
+  const parseNumber = value => Number(value.replace(/[dD]/, "E"));
+  const densityStates = [];
+  let current = null;
+  for (const line of densityText.split(/\r?\n/)) {
+    const header = line.match(/^\s*(\d+)\s+(\d+(?:\/\d+)?)\s+([+-])\s*$/);
+    if (header) {
+      const j = canonicalJ(header[2]);
+      current = {k:Number(header[1]), j, parity:header[3], label:`J=${j}${header[3]}, k=${header[1]}`, grid:[], density:[], radialDensity:[]};
+      densityStates.push(current);
+      continue;
+    }
+    const values = line.trim().split(/\s+/);
+    if (!current || values.length !== 3) continue;
+    const [radius, radialDensity, density] = values.map(parseNumber);
+    if (![radius, radialDensity, density].every(Number.isFinite) || radius < 0) continue;
+    current.grid.push(radius);
+    current.radialDensity.push(radialDensity);
+    current.density.push(density);
+  }
+  const validStates = densityStates.filter(item => item.grid.length > 1);
+  if (!validStates.length) throw new Error("Could not parse radial densities from the GRASP .cd output.");
+  for (const item of validStates) {
+    let integrated = 0;
+    const cumulative = [0];
+    for (let index = 1; index < item.grid.length; index++) {
+      integrated += .5 * (item.radialDensity[index - 1] + item.radialDensity[index]) * (item.grid[index] - item.grid[index - 1]);
+      cumulative.push(integrated);
+    }
+    item.electronCount = integrated;
+    const threshold = integrated * .995;
+    const cutoff = cumulative.findIndex(value => value >= threshold);
+    item.displayRadius = item.grid[Math.max(1, cutoff)];
+  }
+
+  const lines = wavefunctionText.trim().split(/\r?\n/);
+  const headings = lines[0]?.trim().split(/\s+/) || [];
+  const rows = lines.slice(1).map(line => line.trim().split(/\s+/).map(parseNumber));
+  const orbitalGrid = rows.filter(row => row.length === headings.length && row.every(Number.isFinite)).map(row => row[0]);
+  const orbitals = [];
+  for (let column = 1; column < headings.length; column++) {
+    const match = headings[column].match(/^P\((\d+)([spdfgh])(-?)\)$/);
+    if (!match) continue;
+    orbitals.push({
+      name:`${match[1]}${match[2]}${match[3]}`,
+      n:Number(match[1]),
+      l:"spdfgh".indexOf(match[2]),
+      grid:orbitalGrid,
+      u:rows.filter(row => row.length === headings.length && row.every(Number.isFinite)).map(row => row[column]),
+    });
+  }
+  if (!orbitals.length || !orbitalGrid.length) throw new Error("Could not parse Dirac radial orbitals from rwfn.plot.");
+  return {densityStates:validStates, orbitals};
+}
+
+function requestedDensityState(states, selection) {
+  const j = canonicalJ(selection.j);
+  const parity = selection.parity;
+  const k = Number(selection.k);
+  if (!Number.isInteger(k) || k < 1 || !["+", "-"].includes(parity)) {
+    throw new Error("Requested electronic state must have a valid J, parity, and positive integer k.");
+  }
+  const match = states.find(item => item.j === j && item.parity === parity && item.k === k);
+  if (!match) {
+    const available = states.map(item => item.label).join("; ") || "none";
+    throw new Error(`GRASP output does not contain requested J=${j}${parity}, k=${k}. Available states: ${available}.`);
+  }
+  return match;
+}
+
+function showResearchError(message, log = "") {
+  byId("research-results").hidden = false;
+  byId("research-result-title").textContent = "GRASP job failed";
+  byId("research-log").textContent = [message, log].filter(Boolean).join("\n\n");
+  byId("artifact-list").replaceChildren();
+}
+
+async function runGrasp() {
+  const button = byId("run-grasp");
+  if (button.disabled) return;
+  if (!byId("grasp-confirm").checked) {
+    showToast("Confirm that your GRASP configuration matches the selected species and state.");
+    return;
+  }
+  button.disabled = true;
+  byId("generate-inputs").disabled = true;
+  byId("research-progress").hidden = false;
+  byId("research-results").hidden = true;
+  try {
+    const electronicState = validateRequestedElectronicState();
+    const stateName = byId("grasp-state-name").value.trim();
+    if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,23}$/.test(stateName)) {
+      throw new Error("State/output stem must be 1–24 ASCII letters, digits, dots, underscores, or hyphens, and start with a letter or digit.");
+    }
+    if (!byId("grasp-config").value.trim() || !byId("grasp-isodata").value.trim()) {
+      throw new Error("Both the GRASP CSF configuration and nuclear data file are required.");
+    }
+    const input = {
+      stateName,
+      electronicState,
+      configuration:byId("grasp-config").value,
+      isodata:byId("grasp-isodata").value,
+      rangularAnswers:byId("grasp-rangular").value,
+      rwfnestimateAnswers:byId("grasp-rwfnestimate").value,
+      rmcdhfAnswers:byId("grasp-rmcdhf").value,
+      rciAnswers:byId("grasp-rci").value,
+    };
+    byId("research-step").textContent = state.mode === "server" ? "Submitting GRASP job" : "Starting local WebAssembly engine";
+    byId("research-percent").textContent = "0%";
+    byId("research-progress-fill").style.width = "0%";
+    if (state.mode !== "server") {
+      await runBrowserGrasp(input);
+      return;
+    }
+    const payload = {
+      z: state.z,
+      charge: state.charge,
+      mass: state.mass,
+      confirmed: true,
+      configuration: input.configuration,
+      isodata: input.isodata,
+      rangular_answers: input.rangularAnswers,
+      rwfnestimate_answers: input.rwfnestimateAnswers,
+      rmcdhf_answers: input.rmcdhfAnswers,
+      rci_answers: input.rciAnswers,
+    };
+    const response = await fetch("/api/jobs", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(payload),
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || `Local server returned HTTP ${response.status}.`);
+    await monitorGraspJob(result.id);
+  } catch (error) {
+    if (error.cancelled) showToast(error.message);
+    else showResearchError(error.message, error.log || "");
+  } finally {
+    state.graspReject = null;
+    button.disabled = false;
+    byId("generate-inputs").disabled = false;
+  }
+}
+
+async function generateGraspStarter() {
+  const generateButton = byId("generate-inputs");
+  const runButton = byId("run-grasp");
+  if (generateButton.disabled || runButton.disabled) return;
+  let starter;
+  try {
+    starter = makeGraspStarter({
+      z:state.z,
+      charge:state.charge,
+      mass:state.mass,
+      excitation:state.excitation,
+      j:state.j,
+      parity:state.parity,
+    });
+  } catch (error) {
+    showResearchError(error.message);
+    return;
+  }
+  const [symbol] = currentElement();
+  const chargeSuffix = state.charge > 0 ? `p${state.charge}` : state.charge < 0 ? `m${-state.charge}` : "";
+  const stateName = `${symbol}${state.mass}${chargeSuffix}`;
+  invalidatePreview();
+  generateButton.disabled = true;
+  runButton.disabled = true;
+  byId("research-progress").hidden = false;
+  byId("research-results").hidden = true;
+  byId("research-step").textContent = "Preparing input generation only";
+  byId("research-percent").textContent = "2%";
+  byId("research-progress-fill").style.width = "2%";
+  try {
+    await runBrowserGrasp({
+      action:"generate",
+      stateName,
+      z:state.z,
+      charge:state.charge,
+      mass:state.mass,
+      excitation:state.excitation,
+      files:{},
+      nucleusAnswers:starter.nucleusAnswers,
+      csfAnswers:starter.csfAnswers,
+    });
+    showToast("Starter files generated. Review the inputs before running GRASP.");
+  } catch (error) {
+    if (error.cancelled) showToast(error.message);
+    else showResearchError(error.message, error.log || "");
+  } finally {
+    generateButton.disabled = false;
+    runButton.disabled = false;
+  }
+}
+
+function runBrowserGrasp(input) {
+  const sources = window.ORBITAL_GRASP_SOURCES;
+  if (!sources) return Promise.reject(new Error("The bundled GRASP WebAssembly assets did not load. Reopen this folder with the adjacent assets directory intact."));
+  const source = `"use strict"; const graspWasmWorker = ${graspWasmWorker.toString()}; graspWasmWorker();`;
+  const url = URL.createObjectURL(new Blob([source], {type:"text/javascript"}));
+  let worker;
+  try {
+    worker = new Worker(url);
+  } catch (error) {
+    URL.revokeObjectURL(url);
+    return Promise.reject(new Error(`Could not start the browser GRASP worker: ${error.message}`));
+  }
+  const token = generation;
+  state.graspWorker = worker;
+  state.graspWorkerUrl = url;
+  byId("research-log").textContent = "";
+  byId("canvas-hint").hidden = true;
+  byId("research-step").textContent = input.action === "generate"
+    ? "Starting input generation only"
+    : "Preparing GRASP WebAssembly";
+  byId("research-percent").textContent = input.action === "generate" ? "2%" : "0%";
+  byId("research-progress-fill").style.width = input.action === "generate" ? "2%" : "0%";
+
+  return new Promise((resolve, reject) => {
+    let startupTimer = setTimeout(() => {
+      fail(new Error("The GRASP worker did not respond. Check that browser workers are allowed, then reload the app and try again."));
+    }, 30000);
+    const finish = () => {
+      clearTimeout(startupTimer);
+      worker.terminate();
+      URL.revokeObjectURL(url);
+      if (state.graspWorker === worker) state.graspWorker = null;
+      if (state.graspWorkerUrl === url) state.graspWorkerUrl = null;
+      state.graspReject = null;
+    };
+    const fail = error => {
+      finish();
+      reject(error);
+    };
+    state.graspReject = reason => fail(reason);
+    worker.onmessage = event => {
+      if (token !== generation) return;
+      clearTimeout(startupTimer);
+      const message = event.data;
+      if (message.type === "progress") {
+        byId("research-step").textContent = message.step;
+        byId("research-percent").textContent = `${message.progress}%`;
+        byId("research-progress-fill").style.width = `${message.progress}%`;
+        return;
+      }
+      if (message.type === "log") {
+        const output = byId("research-log");
+        output.textContent = (output.textContent + message.line).slice(-30000);
+        output.scrollTop = output.scrollHeight;
+        byId("research-step").textContent = message.line.trim().slice(0, 120);
+        return;
+      }
+      if (message.type === "starter") {
+        byId("grasp-state-name").value = input.stateName;
+        byId("grasp-config").value = message.configuration;
+        byId("grasp-isodata").value = message.isodata;
+        byId("grasp-rangular").value = message.rangularAnswers;
+        byId("grasp-rwfnestimate").value = message.rwfnestimateAnswers;
+        byId("grasp-rmcdhf").value = message.rmcdhfAnswers;
+        byId("grasp-rci").value = "";
+        byId("grasp-confirm").checked = false;
+        byId("research-result-title").textContent = `GRASP inputs generated · ${message.blockCount} symmetry blocks`;
+        byId("research-results").hidden = false;
+        byId("research-log").textContent = message.log;
+        renderBrowserArtifacts([
+          {name:"rcsf.inp", data:new TextEncoder().encode(message.configuration).buffer},
+          {name:"isodata", data:new TextEncoder().encode(message.isodata).buffer},
+        ]);
+        byId("research-step").textContent = "Starter files ready · review before calculation";
+        byId("research-percent").textContent = "100%";
+        byId("research-progress-fill").style.width = "100%";
+        byId("field-meta").textContent = "Approximate GRASP starter inputs · not a calculated density";
+        finish();
+        byId("research-results").scrollIntoView({behavior:"smooth",block:"nearest"});
+        resolve();
+        return;
+      }
+      if (message.type === "error") {
+        const error = new Error(message.error);
+        error.log = message.log;
+        fail(error);
+        return;
+      }
+      if (message.type !== "result") return;
+      try {
+        const parsed = parseGraspOutputs(message.densityText, message.wavefunctionText);
+        const selectedState = requestedDensityState(parsed.densityStates, input.electronicState);
+        const selectedDensityState = parsed.densityStates.indexOf(selectedState);
+        state.solverResult = {
+          ...parsed,
+          grid:selectedState.grid,
+          density:selectedState.density,
+          displayRadius:selectedState.displayRadius,
+          selectedDensityState,
+        };
+        state.generated = true;
+        populateDensityStateSelector();
+        populateOrbitalSelector();
+        selectDensityState(selectedDensityState);
+        byId("density-view").disabled = false;
+        byId("canvas-hint").hidden = true;
+        byId("canvas-disclaimer").textContent = "GRASP RELATIVISTIC MCDHF/RCI DENSITY · FINITE-BASIS RESULT";
+        byId("research-result-title").textContent = input.rciAnswers.trim()
+          ? "GRASP MCDHF + requested RCI workflow completed"
+          : "GRASP MCDHF workflow completed";
+        byId("research-results").hidden = false;
+        byId("research-log").textContent = message.log;
+        renderBrowserArtifacts(message.artifacts);
+        byId("research-step").textContent = "GRASP workflow completed";
+        byId("research-percent").textContent = "100%";
+        byId("research-progress-fill").style.width = "100%";
+        finish();
+        resolve();
+      } catch (error) {
+        showResearchError(error.message, message.log);
+        fail(error);
+      }
+    };
+    worker.onerror = event => fail(new Error(event.message || "The GRASP WebAssembly worker failed."));
+    worker.onmessageerror = () => fail(new Error("The browser could not read the GRASP worker response."));
+    worker.postMessage({input, sources});
+  });
+}
+
+function renderBrowserArtifacts(artifacts) {
+  for (const url of state.artifactUrls) URL.revokeObjectURL(url);
+  state.artifactUrls = [];
+  const list = byId("artifact-list");
+  list.replaceChildren();
+  for (const artifact of artifacts) {
+    const blob = new Blob([artifact.data], {type:"application/octet-stream"});
+    const url = URL.createObjectURL(blob);
+    state.artifactUrls.push(url);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = artifact.name;
+    link.textContent = `${artifact.name} · ${formatBytes(blob.size)}`;
+    list.append(link);
+  }
+}
+
+async function monitorGraspJob(jobId) {
+  while (true) {
+    const response = await fetch(`/api/jobs/${encodeURIComponent(jobId)}`, {cache: "no-store"});
+    const job = await response.json();
+    if (!response.ok) throw new Error(job.error || `Job status returned HTTP ${response.status}.`);
+    byId("research-step").textContent = job.step || job.status;
+    byId("research-percent").textContent = `${job.progress || 0}%`;
+    byId("research-progress-fill").style.width = `${job.progress || 0}%`;
+    byId("research-log").textContent = job.log || "";
+    if (job.status === "failed") {
+      showResearchError(job.error || "GRASP reported a failure.", job.log);
+      return;
+    }
+    if (job.status === "completed") {
+      byId("research-results").hidden = false;
+      byId("research-result-title").textContent = job.uses_rci
+        ? "GRASP MCDHF + requested RCI workflow completed"
+        : "GRASP MCDHF workflow completed";
+      const artifactList = byId("artifact-list");
+      artifactList.replaceChildren();
+      for (const file of job.files) {
+        const link = document.createElement("a");
+        link.href = `/api/jobs/${encodeURIComponent(jobId)}/file/${encodeURIComponent(file.name)}`;
+        link.download = file.name;
+        link.textContent = `${file.name} · ${formatBytes(file.size)}`;
+        artifactList.append(link);
+      }
+      byId("field-meta").textContent = `${job.files.length} GRASP output file(s) · native wavefunction available for download`;
+      byId("canvas-state").textContent = "GRASP · MCDHF OUTPUT";
+      return;
+    }
+    await new Promise(resolve => setTimeout(resolve, 900));
+  }
+}
+
+function updateHyperfineNuclearStates() {
+  clearHyperfineResult();
+  const select = byId("hyperfine-nuclear-state");
+  const previous = select.value;
+  select.replaceChildren();
+  try {
+    const data = JSON.parse(byId("hyperfine-json").value);
+    if (!Array.isArray(data.nuclear_states)) throw new Error("JSON must contain a nuclear_states array.");
+    for (const item of data.nuclear_states) {
+      const option = document.createElement("option");
+      option.value = item.id;
+      option.textContent = `${item.id} · Ex ${item.energy_mev} MeV · I=${item.I}${item.parity} · T=${item.T}`;
+      select.append(option);
+    }
+    if ([...select.options].some(option => option.value === previous)) select.value = previous;
+  } catch {
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "Paste valid state JSON first";
+    select.append(option);
+  }
+}
+
+function clearEnsdfLevels() {
+  state.ensdfRequestId++;
+  state.ensdfData = null;
+  const select = byId("ensdf-level-select");
+  if (select) {
+    select.replaceChildren(new Option("Not retrieved", ""));
+    byId("ensdf-level-details").textContent =
+      "ENSDF retrieval requires opening Orbital through the local server. Retrieved records provide evaluated level data only, not nuclear wavefunctions.";
+    byId("ensdf-attribution").textContent =
+      "Source: IAEA Nuclear Data Services LiveChart API (ENSDF evaluation). Level energies are returned in keV and converted to MeV for display.";
+    byId("fetch-ensdf-levels").disabled = false;
+  }
+}
+
+function showEnsdfLevelDetails() {
+  const data = state.ensdfData;
+  const level = data?.levels.find(item => item.id === byId("ensdf-level-select").value);
+  if (!data || !level) return;
+  const details = [
+    `${data.nuclide} · ENSDF level index ${level.index} (k=${level.k})`,
+    `Excitation energy: ${level.energy_mev} MeV${level.energy_uncertainty_kev ? ` ± ${level.energy_uncertainty_kev} keV` : ""}`,
+    `Spin/parity: ${level.spin_parity || "unassigned"}${level.spin_parity_assignment_exact ? "" : " (uncertain or incomplete assignment)"}`,
+    `Isospin: ${level.isospin || "not evaluated"}`,
+    `Magnetic dipole moment: ${level.magnetic_dipole_moment_mu_n || "not available"} μN`,
+    `Electric quadrupole moment: ${level.electric_quadrupole_moment_b || "not available"} b`,
+    `Half-life: ${level.half_life ? `${level.half_life} ${level.half_life_unit || ""}` : "not available"}`,
+    "",
+    "ENSDF level metadata only; this record contains no nuclear basis coefficients or complete signed transition matrix elements.",
+  ];
+  byId("ensdf-level-details").textContent = details.join("\n");
+  const authors = level.ensdf_authors || "author metadata unavailable";
+  const cutoff = level.ensdf_publication_cutoff || "cutoff unavailable";
+  byId("ensdf-attribution").textContent =
+    `IAEA LiveChart / ENSDF · ${authors} · publication cutoff ${cutoff} · extracted ${data.extraction_date || "date not reported"}`;
+}
+
+async function fetchEnsdfLevels() {
+  clearHyperfineResult();
+  clearEnsdfLevels();
+  const requestId = state.ensdfRequestId;
+  const button = byId("fetch-ensdf-levels");
+  button.disabled = true;
+  byId("ensdf-level-details").textContent =
+    `Retrieving evaluated levels for ${currentElement()[0]}-${state.mass} from IAEA LiveChart…`;
+  try {
+    const response = await fetch(`/api/ensdf/levels?z=${encodeURIComponent(state.z)}&a=${encodeURIComponent(state.mass)}`, {
+      cache: "no-store",
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || `IAEA LiveChart returned HTTP ${response.status}.`);
+    if (requestId !== state.ensdfRequestId) return;
+    state.ensdfData = data;
+    const select = byId("ensdf-level-select");
+    select.replaceChildren();
+    for (const level of data.levels) {
+      const option = new Option(
+        `${level.index} · Ex=${level.energy_mev} MeV · ${level.spin_parity || "Jπ unknown"}`,
+        level.id,
+      );
+      select.append(option);
+    }
+    if (!data.levels.length) throw new Error(`IAEA LiveChart returned no levels for ${data.nuclide}.`);
+    showEnsdfLevelDetails();
+  } catch (error) {
+    if (requestId === state.ensdfRequestId) {
+      byId("ensdf-level-details").textContent = error.message || String(error);
+      byId("ensdf-attribution").textContent =
+        "No substitute or estimated data were loaded. Check server/network access and retry.";
+    }
+  } finally {
+    if (requestId === state.ensdfRequestId) button.disabled = false;
+  }
+}
+
+function clearHyperfineResult() {
+  if (state.hyperfineArtifactUrl) {
+    URL.revokeObjectURL(state.hyperfineArtifactUrl);
+    state.artifactUrls = state.artifactUrls.filter(url => url !== state.hyperfineArtifactUrl);
+    state.hyperfineArtifactUrl = null;
+  }
+  byId("hyperfine-results").hidden = true;
+}
+
+function showHyperfineError(message) {
+  byId("hyperfine-results").hidden = false;
+  byId("hyperfine-result-title").textContent = "Hyperfine calculation blocked";
+  byId("hyperfine-result-output").textContent = message;
+  byId("hyperfine-artifacts").replaceChildren();
+}
+
+function runEnsdfSpinProduct() {
+  clearHyperfineResult();
+  byId("hyperfine-results").hidden = false;
+  byId("hyperfine-artifacts").replaceChildren();
+  try {
+    const data = state.ensdfData;
+    if (!data || data.z !== state.z || data.mass !== state.mass) {
+      throw new Error("Retrieve ENSDF levels for the currently selected isotope first.");
+    }
+    const level = data.levels.find(item => item.id === byId("ensdf-level-select").value);
+    if (!level) throw new Error("Select an evaluated ENSDF level first.");
+    const hasGraspState = state.mode === "grasp"
+      && state.solverResult?.densityStates?.some(item =>
+        item.j === canonicalJ(state.j) && item.parity === state.parity && item.k === state.k);
+    if (!hasGraspState) {
+      throw new Error("Run bundled GRASP for the selected electronic Jπ,k first. The spin-coupled route will not substitute the approximate preview or an unverified state.");
+    }
+    const electronic = {
+      id:`${currentElement()[0]}-${state.mass}:${state.charge}:J${canonicalJ(state.j)}${state.parity}:k${state.k}`,
+      J:canonicalJ(state.j),
+      parity:state.parity,
+      k:state.k,
+    };
+    const result = ORBITAL_HYPERFINE.solveSpinCoupledProduct({
+      electronic_state:electronic,
+      nuclear_level:level,
+      F:byId("hyperfine-f").value.trim(),
+    });
+    const species = `${currentElement()[0]}-${state.mass}${state.charge === 0 ? "" : state.charge > 0 ? `+${state.charge}` : state.charge}`;
+    byId("hyperfine-result-title").textContent =
+      `${species} · GRASP J=${electronic.J}${electronic.parity}, k=${electronic.k} ⊗ ENSDF ${level.spin_parity} · F=${result.F}${result.parity}`;
+    byId("hyperfine-result-output").textContent = [
+      "ENSDF spin-coupled product state",
+      `Nuclear level: ${level.id} · Ex=${level.energy_mev} MeV`,
+      `Total angular momentum: F=${result.F}, M=${result.M}; total parity ${result.parity}`,
+      `Angular expansion norm: ${result.total_wavefunction_expansion.reduce((sum, term) => sum + term.probability, 0).toFixed(12)}`,
+      "Expansion terms |GRASP J,mJ;k> ⊗ |ENSDF I,mI;level>:",
+      ...result.total_wavefunction_expansion.map(term =>
+        `${term.coefficient.toFixed(8).padStart(12)}  mJ=${term.mJ}, mI=${term.mI}  P=${term.probability.toFixed(8)}`),
+      "",
+      result.energy_reference,
+      result.caveat,
+    ].join("\n");
+    const artifact = {
+      mode:"ensdf-spin-coupled-product",
+      metadata:{source:data.source, dataset_id:data.dataset_id, extraction_date:data.extraction_date},
+      species:{z:state.z, charge:state.charge, mass:state.mass},
+      electronic_state:electronic,
+      nuclear_level:level,
+      result,
+    };
+    const blob = new Blob([JSON.stringify(artifact, null, 2)], {type:"application/json"});
+    const url = URL.createObjectURL(blob);
+    state.artifactUrls.push(url);
+    state.hyperfineArtifactUrl = url;
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${currentElement()[0]}${state.mass}-spin-coupled-F${result.F}.json`;
+    link.textContent = `Download angular product expansion · ${formatBytes(blob.size)}`;
+    byId("hyperfine-artifacts").append(link);
+  } catch (error) {
+    showHyperfineError(error.message || String(error));
+  }
+}
+
+function runHyperfine() {
+  if (byId("hyperfine-source").value === "ensdf_spin") {
+    runEnsdfSpinProduct();
+    return;
+  }
+  clearHyperfineResult();
+  const output = byId("hyperfine-results");
+  output.hidden = false;
+  byId("hyperfine-artifacts").replaceChildren();
+  try {
+    const data = JSON.parse(byId("hyperfine-json").value);
+    if (data.schema !== "orbital-hyperfine-v1") throw new Error("Expected schema orbital-hyperfine-v1.");
+    if (data.metadata?.template_only === true) {
+      throw new Error("This is a non-physical schema starter. Replace every placeholder with validated GRASP/KSHELL outputs and remove metadata.template_only.");
+    }
+    if (data.metadata?.species?.z !== state.z
+        || data.metadata?.species?.charge !== state.charge
+        || data.metadata?.species?.mass !== state.mass) {
+      throw new Error("GRASP/KSHELL export species metadata must exactly match the selected element, ion, and isotope.");
+    }
+    if (data.metadata?.electronic_source !== "GRASP") {
+      throw new Error("Dataset metadata must identify GRASP as the electronic state source.");
+    }
+    if (typeof data.metadata?.nuclear_wavefunction_source !== "string"
+        || !data.metadata.nuclear_wavefunction_source.trim()) {
+      throw new Error("Record the source of the nuclear basis wavefunctions in metadata.nuclear_wavefunction_source.");
+    }
+    const source = byId("hyperfine-source").value.toUpperCase();
+    if (data.metadata?.nuclear_source !== source) {
+      throw new Error(`Selected ${source} route does not match JSON nuclear_source metadata.`);
+    }
+    if (source === "KSHELL" && (!data.metadata?.interaction || !data.metadata?.model_space)) {
+      throw new Error("KSHELL route requires the named shell-model interaction and model space in metadata.");
+    }
+    if (source === "ENSDF" && !data.metadata?.dataset_id) {
+      throw new Error("ENSDF route requires an evaluated dataset identifier in metadata.");
+    }
+    const nuclearStateId = byId("hyperfine-nuclear-state").value;
+    if (!nuclearStateId) throw new Error("Select a nuclear level from the loaded state data.");
+    const result = ORBITAL_HYPERFINE.solve({
+      ...data,
+      target: {
+        F: byId("hyperfine-f").value.trim(),
+        electronic_J: canonicalJ(state.j),
+        electronic_parity: state.parity,
+        electronic_k: state.k,
+        nuclear_state_id: nuclearStateId,
+      },
+    });
+    const species = `${currentElement()[0]}-${state.mass}${state.charge === 0 ? "" : state.charge > 0 ? `+${state.charge}` : state.charge}`;
+    byId("hyperfine-result-title").textContent = `${species} · F=${result.F}${result.parity} · hyperfine root ${result.hyperfine_root_k} · ${result.energy_mev.toPrecision(10)} MeV`;
+    const lines = [
+      `Finite basis dimension: ${result.dimension}`,
+      `Overlap with requested uncoupled state: ${result.target_overlap.toFixed(8)}`,
+      `Energy: ${result.energy_hartree.toPrecision(12)} Ha (${result.energy_mev.toPrecision(12)} MeV)`,
+      ...(result.target_identification_warning ? [result.target_identification_warning] : []),
+      `Matrix-element provenance: ${result.provenance.join(" | ")}`,
+      "",
+      "Largest coupled-basis amplitudes:",
+      ...result.components
+        .slice()
+        .sort((left, right) => right.probability - left.probability)
+        .slice(0, 20)
+        .map(item => `${item.coefficient.toFixed(8).padStart(12)}  ${item.electronic_state} ⊗ ${item.nuclear_state}  P=${item.probability.toFixed(8)}`),
+      "",
+      result.caveat,
+    ];
+    byId("hyperfine-result-output").textContent = lines.join("\n");
+    const blob = new Blob([JSON.stringify({input:data, target:result, total_wavefunction:result.total_wavefunction_expansion}, null, 2)], {type:"application/json"});
+    const url = URL.createObjectURL(blob);
+    state.artifactUrls.push(url);
+    state.hyperfineArtifactUrl = url;
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${currentElement()[0]}${state.mass}-hyperfine-F${result.F}.json`;
+    link.textContent = `Download full coupled expansion · ${formatBytes(blob.size)}`;
+    byId("hyperfine-artifacts").append(link);
+  } catch (error) {
+    showHyperfineError(error.message || String(error));
+  }
+}
+
+function formatBytes(bytes) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function switchTab(tab) {
+  state.tab = tab;
+  const isotopeActive = tab === "isotope";
+  byId("isotope-tab").classList.toggle("active", isotopeActive);
+  byId("isotope-tab").setAttribute("aria-selected", String(isotopeActive));
+  byId("stability-tab").classList.toggle("active", !isotopeActive);
+  byId("stability-tab").setAttribute("aria-selected", String(!isotopeActive));
+  byId("isotope-panel").hidden = !isotopeActive;
+  byId("stability-panel").hidden = isotopeActive;
+  if (!isotopeActive) requestAnimationFrame(drawStabilityChart);
+}
+
+function drawStabilityChart() {
+  const size = fitCanvas(stabilityCanvas, stabilityCtx);
+  if (!size) return;
+  const {width, height} = size;
+  const ctx = stabilityCtx;
+  ctx.clearRect(0,0,width,height);
+  const left=34, right=width-12, top=8, bottom=height-26;
+  const plotW=right-left, plotH=bottom-top;
+  const maxNeutrons=Math.max(220,Math.ceil((state.mass-state.z+20)/20)*20);
+  const neutronTick=Math.max(30,Math.ceil(maxNeutrons/6/10)*10);
+  ctx.fillStyle="#0a121e";
+  ctx.fillRect(left,top,plotW,plotH);
+  ctx.strokeStyle="#263448";
+  ctx.lineWidth=1;
+  ctx.font="8px 'DM Mono', monospace";
+  ctx.fillStyle="#73839a";
+  for (let z=0; z<=120; z+=20) {
+    const x=left+(z/120)*plotW;
+    ctx.beginPath(); ctx.moveTo(x,top); ctx.lineTo(x,bottom); ctx.stroke();
+    ctx.fillText(String(z),x-5,bottom+13);
+  }
+  for (let n=0; n<=maxNeutrons; n+=neutronTick) {
+    const y=bottom-(n/maxNeutrons)*plotH;
+    ctx.beginPath(); ctx.moveTo(left,y); ctx.lineTo(right,y); ctx.stroke();
+    ctx.fillText(String(n),left-22,y+3);
+  }
+  const xFor=z=>left+(z/120)*plotW;
+  const yFor=n=>bottom-(n/maxNeutrons)*plotH;
+  ctx.beginPath();
+  for(let z=1;z<=118;z++){
+    const n=z<=20?z*1.04:z*1.45;
+    if(z===1)ctx.moveTo(xFor(z),yFor(n));else ctx.lineTo(xFor(z),yFor(n));
+  }
+  for(let z=118;z>=1;z--){
+    const n=z<=20?z*1.72:z*1.62+9;
+    ctx.lineTo(xFor(z),yFor(n));
+  }
+  ctx.closePath();
+  ctx.fillStyle="rgba(136, 113, 231, .17)";
+  ctx.fill();
+  ctx.strokeStyle="rgba(161, 142, 240, .45)";
+  ctx.lineWidth=1;
+  ctx.stroke();
+  for(let z=1;z<=118;z+=2){
+    const n=z<=20?z*1.38:z*1.54+4;
+    ctx.fillStyle="rgba(181, 164, 255, .35)";
+    ctx.fillRect(xFor(z)-1,yFor(n)-1,2,2);
+  }
+  const n=state.mass-state.z;
+  const x=xFor(state.z), y=yFor(n);
+  ctx.beginPath(); ctx.moveTo(x,top); ctx.lineTo(x,bottom);
+  ctx.setLineDash([3,4]); ctx.strokeStyle="rgba(102,228,211,.5)"; ctx.lineWidth=1; ctx.stroke(); ctx.setLineDash([]);
+  ctx.beginPath(); ctx.arc(x,y,4.2,0,Math.PI*2); ctx.fillStyle="#66e4d3"; ctx.fill();
+  ctx.beginPath(); ctx.arc(x,y,7.5,0,Math.PI*2); ctx.strokeStyle="rgba(102,228,211,.5)"; ctx.stroke();
+  ctx.font="9px 'DM Mono', monospace"; ctx.fillStyle="#8ff3df";
+  const labelX=Math.min(Math.max(x+8,left+4),right-72);
+  const labelY=Math.max(top+13,y-8);
+  ctx.fillText(`${currentElement()[0]} · Z=${state.z}`,labelX,labelY);
+}
+
+function setMass(value) {
+  const mass=Number(value);
+  if(!Number.isInteger(mass)) {
+    byId("mass-input").value=String(state.mass);
+    return;
+  }
+  state.mass=Math.max(state.z,Math.min(320,mass));
+  clearEnsdfLevels();
+  invalidatePreview();
+  updateUI();
+  drawStabilityChart();
+  scheduleGeneration();
+}
+
+function validateRequestedElectronicState() {
+  const twoJ = parseTwoJ(state.j);
+  const electronCount = state.z - state.charge;
+  if (twoJ % 2 !== electronCount % 2) {
+    throw new Error("Requested J is incompatible with the selected electron count: J must be integer for even N and half-integer for odd N.");
+  }
+  if (!Number.isInteger(state.k) || state.k < 1) {
+    throw new Error("Requested level index k must be a positive integer.");
+  }
+  return {j:canonicalJ(state.j), parity:state.parity, k:state.k};
+}
+
+function updateElectronicState(mutator) {
+  const previous = {j:state.j, parity:state.parity, k:state.k};
+  try {
+    mutator();
+    validateRequestedElectronicState();
+  } catch (error) {
+    Object.assign(state, previous);
+    showToast(error.message);
+    updateUI();
+    return;
+  }
+  invalidatePreview();
+  updateUI();
+  drawWavefunction();
+}
+
+byId("charge-input").addEventListener("change", event => setCharge(event.target.value));
+byId("charge-down").addEventListener("click", () => setCharge(state.charge-1));
+byId("charge-up").addEventListener("click", () => setCharge(state.charge+1));
+byId("excitation-select").addEventListener("change", event => {
+  state.excitation=event.target.value;
+  invalidatePreview();
+  updateUI();
+  drawWavefunction();
+  scheduleGeneration();
+});
+byId("j-input").addEventListener("change", event => updateElectronicState(() => {
+  state.j = canonicalJ(event.target.value);
+}));
+byId("parity-input").addEventListener("change", event => updateElectronicState(() => {
+  if (!["+", "-"].includes(event.target.value)) throw new Error("Parity must be + or −.");
+  state.parity = event.target.value;
+}));
+byId("k-input").addEventListener("change", event => updateElectronicState(() => {
+  const value = Number(event.target.value);
+  if (!Number.isInteger(value) || value < 1) throw new Error("Level index k must be a positive integer.");
+  state.k = value;
+}));
+byId("phase-toggle").addEventListener("click", event => {
+  state.phase=!state.phase;
+  event.currentTarget.classList.toggle("phase-enabled",state.phase);
+  event.currentTarget.setAttribute("aria-pressed",String(state.phase));
+  drawWavefunction();
+});
+byId("zoom-in").addEventListener("click",()=>setViewZoom(state.viewZoom*1.15));
+byId("zoom-out").addEventListener("click",()=>setViewZoom(state.viewZoom/1.15));
+byId("reset-view").addEventListener("click",resetView);
+const canvasWrap = byId("canvas-wrap");
+let activeDrag = null;
+waveCanvas.addEventListener("pointerdown",event=>{
+  if(event.button!==0)return;
+  activeDrag={pointerId:event.pointerId,x:event.clientX,y:event.clientY};
+  waveCanvas.setPointerCapture(event.pointerId);
+});
+waveCanvas.addEventListener("pointermove",event=>{
+  if(!activeDrag||event.pointerId!==activeDrag.pointerId)return;
+  state.viewYaw+=(event.clientX-activeDrag.x)*.008;
+  state.viewPitch=Math.max(-1.35,Math.min(1.35,state.viewPitch+(event.clientY-activeDrag.y)*.008));
+  activeDrag.x=event.clientX;
+  activeDrag.y=event.clientY;
+  drawWavefunction();
+});
+const finishViewDrag=event=>{
+  if(!activeDrag||event.pointerId!==activeDrag.pointerId)return;
+  if(waveCanvas.hasPointerCapture(event.pointerId))waveCanvas.releasePointerCapture(event.pointerId);
+  activeDrag=null;
+};
+waveCanvas.addEventListener("pointerup",finishViewDrag);
+waveCanvas.addEventListener("pointercancel",finishViewDrag);
+canvasWrap.addEventListener("wheel",event=>{
+  event.preventDefault();
+  setViewZoom(state.viewZoom*Math.exp(-event.deltaY*.0012));
+},{passive:false});
+byId("orbital-select").addEventListener("change",drawWavefunction);
+byId("density-state-select").addEventListener("change",event=>selectDensityState(Number(event.target.value)));
+byId("generate-button").addEventListener("click",startGeneration);
+byId("cancel-compute").addEventListener("click",cancelGeneration);
+byId("cancel-grasp").addEventListener("click",()=>{
+  if (!state.graspWorker) return;
+  state.graspWorker.terminate();
+  if (state.graspWorkerUrl) URL.revokeObjectURL(state.graspWorkerUrl);
+  state.graspWorker = null;
+  state.graspWorkerUrl = null;
+  const reject = state.graspReject;
+  state.graspReject = null;
+  if (reject) {
+    const error = new Error("GRASP calculation cancelled.");
+    error.cancelled = true;
+    reject(error);
+  }
+});
+byId("isotope-tab").addEventListener("click",()=>switchTab("isotope"));
+byId("stability-tab").addEventListener("click",()=>switchTab("stability"));
+byId("chart-jump").addEventListener("click",()=>switchTab("stability"));
+byId("mass-down").addEventListener("click",()=>setMass(state.mass-1));
+byId("mass-up").addEventListener("click",()=>setMass(state.mass+1));
+byId("mass-input").addEventListener("change",event=>setMass(event.target.value));
+byId("hyperfine-json").addEventListener("input", updateHyperfineNuclearStates);
+byId("hyperfine-file").addEventListener("change", async event => {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  try {
+    if (file.size > 5_000_000) throw new Error("Hyperfine data JSON must be no larger than 5 MB.");
+    byId("hyperfine-json").value = await file.text();
+    updateHyperfineNuclearStates();
+  } catch (error) {
+    showHyperfineError(error.message || String(error));
+  }
+});
+byId("hyperfine-source").addEventListener("change", event => {
+  clearHyperfineResult();
+  const ensdf = event.target.value === "ensdf";
+  const spinProduct = event.target.value === "ensdf_spin";
+  byId("advanced-hyperfine-inputs").hidden = spinProduct;
+  byId("hyperfine-note").textContent = spinProduct
+    ? "No .snt file or matrix entries are needed for this route. It returns the CG-coupled product of a verified GRASP Jπ,k state and an exact-spin ENSDF level; nuclear spatial structure, hyperfine shifts, and state mixing are not calculated."
+    : ensdf
+    ? "ENSDF retrieval supplies evaluated energies and quantum-number metadata only. It cannot provide the nuclear basis eigenvectors or complete signed elements needed by the coupled solver; those must come from a nuclear-structure calculation."
+    : "A KSHELL interaction and model space are required for a nuclear-structure calculation. This advanced path still requires compatible basis and signed transition-element exports; the app does not yet invoke KSHELL or adapt its native outputs.";
+});
+byId("fetch-ensdf-levels").addEventListener("click", fetchEnsdfLevels);
+byId("ensdf-level-select").addEventListener("change", showEnsdfLevelDetails);
+byId("hyperfine-f").addEventListener("input", clearHyperfineResult);
+byId("hyperfine-nuclear-state").addEventListener("change", clearHyperfineResult);
+byId("solve-hyperfine").addEventListener("click", runHyperfine);
+byId("mode-switch").addEventListener("click",()=>{
+  byId("mode-dialog").hidden=false;
+  byId("mode-switch").setAttribute("aria-expanded", "true");
+  byId("choose-grasp").focus();
+});
+byId("mode-dialog").addEventListener("click",event=>{
+  if(event.target!==event.currentTarget)return;
+  closeModeDialog();
+});
+document.addEventListener("keydown",event=>{
+  if(event.key!=="Escape"||byId("mode-dialog").hidden)return;
+  closeModeDialog();
+});
+byId("choose-preview").addEventListener("click",()=>setMode("preview"));
+byId("choose-grasp").addEventListener("click",()=>setMode("grasp"));
+byId("choose-server").addEventListener("click",()=>setMode("server"));
+byId("run-grasp").addEventListener("click",runGrasp);
+byId("generate-inputs").addEventListener("click",generateGraspStarter);
+for (const input of document.querySelectorAll("#grasp-state-name, #grasp-config, #grasp-isodata, #grasp-rangular, #grasp-rwfnestimate, #grasp-rmcdhf, #grasp-rci")) {
+  input.addEventListener("input",()=>{
+    byId("grasp-confirm").checked=false;
+    if (state.mode !== "preview") invalidatePreview();
+  });
+}
+byId("copy-log").addEventListener("click",async()=>{
+  try {
+    await navigator.clipboard.writeText(byId("research-log").textContent);
+    showToast("GRASP log copied.");
+  } catch {
+    showToast("Could not copy the log; select and copy it manually.");
+  }
+});
+document.querySelector(".help-button").addEventListener("click",()=>showToast(state.mode === "preview"
+  ? "Browser preview is spherical, nonrelativistic LDA-SCF; it is not DCB/MCDHF and includes no relativistic or QED corrections."
+  : state.mode === "server"
+    ? "Native GRASP runs through the optional loopback server and returns native output files."
+    : "Bundled GRASP runs MCDHF/RCI locally; verify basis, convergence, state identity, and enabled corrections."));
+window.addEventListener("resize",()=>{drawWavefunction();if(state.tab==="stability")drawStabilityChart();});
+
+renderTable();
+updateUI();
+drawWavefunction();
+requestAnimationFrame(drawStabilityChart);
+refreshWasmStatus();
+scheduleGeneration(0);
+
+</script>
+  </body>
+</html>

@@ -1,0 +1,69 @@
+{
+  "schema": "orbital-hyperfine-v1",
+  "metadata": {
+    "template_only": true,
+    "species": {
+      "z": 1,
+      "charge": 0,
+      "mass": 1
+    },
+    "electronic_source": "GRASP",
+    "nuclear_source": "KSHELL",
+    "nuclear_wavefunction_source": "REPLACE_WITH_METHOD_AND_VERSION",
+    "interaction": "REPLACE_WITH_KSHELL_INTERACTION_ID",
+    "model_space": "REPLACE_WITH_PROTON_AND_NEUTRON_MODEL_SPACE"
+  },
+  "electronic_states": [
+    {
+      "id": "REPLACE_WITH_GRASP_STATE_ID",
+      "J": "1/2",
+      "parity": "+",
+      "k": 1,
+      "energy_hartree": 0.0,
+      "basis_coefficients": [
+        {
+          "configuration": "REPLACE_WITH_GRASP_CSF_ID",
+          "coefficient": 1.0
+        }
+      ]
+    }
+  ],
+  "nuclear_states": [
+    {
+      "id": "REPLACE_WITH_KSHELL_STATE_ID",
+      "I": "1/2",
+      "parity": "+",
+      "T": 0.0,
+      "k": 1,
+      "energy_mev": 0.0,
+      "basis_coefficients": [
+        {
+          "configuration": "REPLACE_WITH_KSHELL_BASIS_ID",
+          "coefficient": 1.0
+        }
+      ]
+    }
+  ],
+  "interactions": [
+    {
+      "rank": 1,
+      "parity": "+",
+      "scale_hartree": 0.0,
+      "source": "REPLACE_WITH_GRASP_AND_KSHELL_MATRIX_ELEMENT_PROVENANCE",
+      "electronic_reduced": [
+        {
+          "bra": "REPLACE_WITH_GRASP_STATE_ID",
+          "ket": "REPLACE_WITH_GRASP_STATE_ID",
+          "value": 0.0
+        }
+      ],
+      "nuclear_reduced": [
+        {
+          "bra": "REPLACE_WITH_KSHELL_STATE_ID",
+          "ket": "REPLACE_WITH_KSHELL_STATE_ID",
+          "value": 0.0
+        }
+      ]
+    }
+  ]
+}

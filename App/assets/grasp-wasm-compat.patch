@@ -1,0 +1,250 @@
+diff --git a/src/appl/rci90/setres.f90 b/src/appl/rci90/setres.f90
+index ccf8176..0904669 100644
+--- a/src/appl/rci90/setres.f90
++++ b/src/appl/rci90/setres.f90
+@@ -46,7 +46,7 @@
+ !   L o c a l   V a r i a b l e s
+ !-----------------------------------------------
+       INTEGER :: IERR, IOS
+-      LOGICAL :: FOUND, RESTRT
++      LOGICAL :: RESTRT
+       CHARACTER :: R92RES*6, DEFNAM*11, IDSTRING*3
+ !-----------------------------------------------
+ !
+@@ -72,8 +72,6 @@
+ !
+       IF (RESTRT) THEN
+ !         ...Restart, make sure file exist
+-         INQUIRE(FILE=DEFNAM, EXIST=FOUND)
+-         IF (.NOT.FOUND) STOP 'setres: .res does not exist'
+       ENDIF
+ !
+ ! Open the .res file
+diff --git a/src/appl/rmcdhf90/setmcp.f90 b/src/appl/rmcdhf90/setmcp.f90
+index 6e97f7b..6dbd8a1 100644
+--- a/src/appl/rmcdhf90/setmcp.f90
++++ b/src/appl/rmcdhf90/setmcp.f90
+@@ -61,7 +61,7 @@
+ !-----------------------------------------------
+ !   L o c a l   V a r i a b l e s
+ !-----------------------------------------------
+-      INTEGER :: LENFH, IERROR, IOS, I, K, LCK, MYIDD, NPROCSS
++      INTEGER :: LENFH, IERROR, IOS, I, K, LCK, MYIDD, NPROCSS, CHECK_UNIT
+       LOGICAL :: FOUND, FOUND1
+       CHARACTER :: CK*2, MCPLAB*3
+       CHARACTER(LEN=120) :: FILNAM
+@@ -99,7 +99,9 @@
+       DO K = 31, 32 + KMAXF
+          CALL CONVRT (K, CK, LCK)
+          FILNAM = FILEHEAD(1:LENFH)//'.'//CK(1:2)
+-         INQUIRE(FILE=FILNAM, EXIST=FOUND1)
++         OPEN(NEWUNIT=CHECK_UNIT, FILE=FILNAM, STATUS='OLD', IOSTAT=IOS)
++         FOUND1 = IOS == 0
++         IF (FOUND1) CLOSE(CHECK_UNIT)
+          FOUND = FOUND .AND. FOUND1
+       END DO
+ 
+diff --git a/src/appl/rmcdhf90/solve.f90 b/src/appl/rmcdhf90/solve.f90
+index 3f35a7c..08ae3ba 100644
+--- a/src/appl/rmcdhf90/solve.f90
++++ b/src/appl/rmcdhf90/solve.f90
+@@ -343,8 +343,8 @@
+          ' effective charge ',F7.3)
+   303 FORMAT(' E(',1I2,1A2,') = ',1P,D11.4,'; adjusted to TWOCSQ')
+   304 FORMAT(' Warning: difficulty with node-counting procedure'/,&
+-         ' lower bound on energy (',1P,D11.4,') exceeds upper',' bound (',1D&
+-         11.4,'; E(',1I2,1A2,') = ',1D11.4)
++         ' lower bound on energy (',1P,D11.4,') exceeds upper',' bound (',1D11.4,&
++         '; E(',1I2,1A2,') = ',1D11.4)
+   305 FORMAT(' Method ',1I1,' unable to solve for ',1I2,1A2,' orbital')
+   306 FORMAT(' Iteration number: ',1I2,', limit: ',1I2,/,&
+          ' Present estimate of P0; ',1D21.14,/,' Present estimate of E(J): ',1D&
+diff --git a/src/appl/rwfnestimate90/genrwf.f90 b/src/appl/rwfnestimate90/genrwf.f90
+index 56d6664..04cf8e4 100644
+--- a/src/appl/rwfnestimate90/genrwf.f90
++++ b/src/appl/rwfnestimate90/genrwf.f90
+@@ -47,7 +47,7 @@
+ !   L o c a l   V a r i a b l e s
+ !-----------------------------------------------
+       INTEGER , DIMENSION(NNNW) :: INDEX
+-      INTEGER :: J, I, K, NRADIAL, NSUBS, LOC
++      INTEGER :: J, I, K, NRADIAL, NSUBS, LOC, FILE_UNIT, FILE_IOS
+       REAL(DOUBLE) :: CON, FKK
+       LOGICAL :: ALL, YES, MODIFY=.FALSE., EXISTED
+       CHARACTER :: INFILE*128
+@@ -124,7 +124,9 @@
+             READ (ISTDI, '(A)') INFILE
+             IF (LEN_TRIM(INFILE) == 0) INFILE = 'rwfn.out'
+ 
+-            INQUIRE(FILE=INFILE, EXIST=EXISTED)
++            OPEN(NEWUNIT=FILE_UNIT, FILE=INFILE, STATUS='OLD', IOSTAT=FILE_IOS)
++            EXISTED = FILE_IOS == 0
++            IF (EXISTED) CLOSE(FILE_UNIT)
+             IF (.NOT.EXISTED) THEN
+                WRITE (ISTDE, *) ' File "', INFILE(1:LEN_TRIM(INFILE)), &
+                   '" does not exist, redo'
+diff --git a/src/appl/rwfnestimate90/wrtrwf.f90 b/src/appl/rwfnestimate90/wrtrwf.f90
+index 586dd64..99d7572 100644
+--- a/src/appl/rwfnestimate90/wrtrwf.f90
++++ b/src/appl/rwfnestimate90/wrtrwf.f90
+@@ -32,7 +32,6 @@
+ !   L o c a l   V a r i a b l e s
+ !-----------------------------------------------
+       INTEGER :: NEWUNIT, IERR, J, MFJ, I
+-      LOGICAL :: IMOPENED
+       CHARACTER :: FILNAM*128
+ !-----------------------------------------------
+ !
+@@ -40,16 +39,7 @@
+ 
+       FILNAM = 'rwfn.inp'
+ 
+-      DO NEWUNIT = 23, 99                        ! 23 is a historical value
+-         INQUIRE(UNIT=NEWUNIT, OPENED=IMOPENED)
+-         IF (IMOPENED) CYCLE
+-         EXIT                                    ! should be the normal exit point
+-      END DO
+-
+-      IF (NEWUNIT == 100) THEN
+-         WRITE (ISTDE, *) 'All unit numbers from 23 to 99 are BUSY!'
+-         STOP
+-      ENDIF
++      NEWUNIT = 23
+ 
+       CALL OPENFL (NEWUNIT, FILNAM, 'UNFORMATTED', 'NEW', IERR)
+       IF (IERR == 1) THEN
+diff --git a/src/lib/lib9290/setcsh.f90 b/src/lib/lib9290/setcsh.f90
+index 1eda6f4..812341e 100644
+--- a/src/lib/lib9290/setcsh.f90
++++ b/src/lib/lib9290/setcsh.f90
+@@ -35,7 +35,6 @@
+ !   L o c a l   V a r i a b l e s
+ !-----------------------------------------------
+       INTEGER :: LENGTH, IOS
+-      LOGICAL :: FOUND
+       CHARACTER :: RECORD*15
+ !-----------------------------------------------
+ !
+@@ -43,18 +42,6 @@
+ 
+       LENGTH = LEN_TRIM(NAME)
+ 
+-      INQUIRE(FILE=NAME, EXIST=FOUND)
+-      IF (.NOT.FOUND) THEN
+-         WRITE (ISTDE, *) NAME(1:LENGTH), ' does not exist'
+-         STOP
+-      ENDIF
+-
+-      INQUIRE(UNIT=NFILE, OPENED=FOUND)
+-      IF (FOUND) THEN
+-         WRITE (ISTDE, *) 'Unit ', NFILE, ' has been used elsewhere'
+-         STOP
+-      ENDIF
+-
+       OPEN(NFILE, FILE=NAME, STATUS='OLD', IOSTAT=IOS, POSITION='asis')
+       IF (IOS /= 0) THEN
+          WRITE (ISTDE, *) 'Error when opening ', NAME
+diff --git a/src/lib/lib9290/setcsll.f90 b/src/lib/lib9290/setcsll.f90
+index 2b4ef15..9faaf49 100644
+--- a/src/lib/lib9290/setcsll.f90
++++ b/src/lib/lib9290/setcsll.f90
+@@ -28,19 +28,12 @@
+ !   L o c a l   V a r i a b l e s
+ !-----------------------------------------------
+       INTEGER :: I, NCSF, IOS, IERR
+-      LOGICAL :: FOUND
+       CHARACTER :: STR*15, CH*2, LINE3*200
+ !-----------------------------------------------
+ ! Locals
+ 
+ ! Look for  <name>
+ 
+-      INQUIRE(FILE=NAME, EXIST=FOUND)
+-      IF (.NOT.FOUND) THEN
+-         WRITE (6, *) NAME(1:LEN_TRIM(NAME)), ' does not exist'
+-         STOP
+-      ENDIF
+-
+ ! Open it
+ 
+       CALL OPENFL (NUNIT, NAME, 'FORMATTED', 'OLD', IERR)
+diff --git a/src/lib/lib9290/setiso.f90 b/src/lib/lib9290/setiso.f90
+index a815f35..e26713b 100644
+--- a/src/lib/lib9290/setiso.f90
++++ b/src/lib/lib9290/setiso.f90
+@@ -44,17 +44,10 @@
+ !   L o c a l   V a r i a b l e s
+ !-----------------------------------------------
+       INTEGER           :: LENF, IERR, IOS
+-      LOGICAL           :: FOUND
+       CHARACTER(LEN=14) :: STR
+ !-----------------------------------------------
+ !
+-      INQUIRE(FILE=FNAME, EXIST=FOUND)
+-      IF (.NOT.FOUND) THEN
+-         LENF = LEN_TRIM(FNAME)
+-         WRITE (ISTDE,*)                                              &
+-                     MYNAME,'- file: ',FNAME(1:LENF),' does not exist'
+-         STOP
+-      ENDIF
++      LENF = LEN_TRIM(FNAME)
+ !
+       CALL OPENFL (22, FNAME, FORM, STATUS, IERR)
+       IF (IERR /= 0) THEN
+diff --git a/src/lib/lib9290/starttime.f90 b/src/lib/lib9290/starttime.f90
+index 31a8f10..5a49c0d 100644
+--- a/src/lib/lib9290/starttime.f90
++++ b/src/lib/lib9290/starttime.f90
+@@ -49,7 +49,7 @@
+ !  Start timing - Record the wall clock
+ !=======================================================================
+ 
+-      call system_clock (ncount1, ncount_rate, ncount_max)
++      ncount1 = 0
+ 
+       return
+       end subroutine starttime
+diff --git a/src/lib/lib9290/stoptime.f90 b/src/lib/lib9290/stoptime.f90
+index 8d8cdb1..9a12ae7 100644
+--- a/src/lib/lib9290/stoptime.f90
++++ b/src/lib/lib9290/stoptime.f90
+@@ -24,9 +24,7 @@
+ !-----------------------------------------------
+ !   L o c a l   V a r i a b l e s
+ !-----------------------------------------------
+-      integer :: ncount2, ncount_rate, ncount_max, nseconds
+-      integer, dimension(8) :: nymduhmsm
+-      character :: chdate*8, chtime*10, chzone*5, str2nds*8, msg*80
++      character :: msg*80
+ !-----------------------------------------------
+ 
+ !=======================================================================
+@@ -36,27 +34,9 @@
+ !      write (6, *) '===================================================='
+ !      write (6, *) '       ', progname, ': Execution Finished ...'
+ !      write (6, *) '===================================================='
+-      write (6, *)
+-      write (6, *) 'Wall time:'
+-
+-      call system_clock (ncount2, ncount_rate, ncount_max)
+-      ncount2 = ncount2 - ncount1
+-      nseconds = ncount2/ncount_rate
+-      write (str2nds, '(I8)') nseconds
+-      msg = str2nds//' seconds'
++      msg = 'Timing unavailable in the WebAssembly build.'
+       write (6, *) msg(1:len_trim(msg))
+ 
+-      write (6, *)
+-      write (6, *) 'Finish Date and Time:'
+-
+-      call date_and_time (chdate, chtime, chzone, nymduhmsm)
+-
+-      Print*, '  Date (Yr/Mon/Day): ',                     &
+-              chdate(1:4),'/',chdate(5:6),'/',chdate(7:8)
+-      Print*, '  Time (Hr/Min/Sec): ',                     &
+-              chtime(1:2),'/',chtime(3:4),'/',chtime(5:10)
+-      Print*, '  Zone: ',chzone
+-
+       write (6, *)
+       write (6, *) progname//': Execution complete.'
+ 
